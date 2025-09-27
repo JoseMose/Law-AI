@@ -1,5 +1,5 @@
 import React from 'react';
-import { ServerStatus } from './components/ServerStatus';
+import { ServerStatus } from './ServerStatus';
 
 export const DemoMode = () => {
   return (
