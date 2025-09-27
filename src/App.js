@@ -5,6 +5,7 @@ import { AuthUI } from './components/AuthUI';
 import { useAuth } from './contexts/AuthContext';
 import Cases from './components/Cases';
 import CaseView from './components/CaseView';
+import { DemoMode } from './components/DemoMode';
 import './App.css';
 
 function AppContent() {
@@ -34,6 +35,15 @@ function AppContent() {
 }
 
 function App() {
+  const backendDisabled = process.env.REACT_APP_BACKEND_DISABLED === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  
+  // Show demo mode if backend is disabled or in production with localhost API
+  if (backendDisabled || (isProduction && apiUrl.includes('localhost'))) {
+    return <DemoMode />;
+  }
+
   return (
     <AuthProvider>
       <AuthUI>
