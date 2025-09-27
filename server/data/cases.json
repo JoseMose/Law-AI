@@ -1,0 +1,18 @@
+[
+  {
+    "id": "case_1758830080258",
+    "title": "Test Case",
+    "description": "",
+    "owner": "test",
+    "documents": [
+      {
+        "id": "doc_1758830092568",
+        "key": "pdfs/test/contract_with_issues.pdf",
+        "bucket": "contractfiles1",
+        "filename": "contract_with_issues.pdf",
+        "contentType": "application/pdf",
+        "uploadedAt": "2025-09-25T19:54:52.568Z"
+      }
+    ]
+  }
+]

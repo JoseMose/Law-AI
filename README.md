@@ -1,6 +1,39 @@
-# Getting Started with Create React App
+# Law AI - Legal Document Analysis Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack web application for lawyers to upload, preview, and analyze legal documents using AI-powered contract review.
+
+## 🔐 Security Setup (IMPORTANT)
+
+**Before running this application, you must set up your environment variables:**
+
+1. **Copy the environment template:**
+   ```bash
+   cp server/.env.example server/.env
+   ```
+
+2. **Configure your AWS credentials in `server/.env`:**
+   ```bash
+   AWS_REGION=us-east-1
+   AWS_ACCESS_KEY_ID=your_actual_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_actual_aws_secret_key
+   S3_BUCKET_NAME=your_s3_bucket_name
+   ```
+
+3. **Configure AWS Cognito in `server/.env`:**
+   ```bash
+   COGNITO_CLIENT_ID=your_client_id
+   COGNITO_CLIENT_SECRET=your_client_secret
+   COGNITO_USER_POOL_ID=your_user_pool_id
+   ```
+
+4. **Optional: Enable AI features:**
+   ```bash
+   TEXTRACT_ENABLED=true
+   BEDROCK_ENABLED=true
+   BEDROCK_MODEL=anthropic.claude-3-sonnet-20240229-v1:0
+   ```
+
+⚠️ **Never commit the `server/.env` file to Git. It contains sensitive credentials.**
 
 ## Available Scripts
 
