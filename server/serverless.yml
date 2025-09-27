@@ -1,4 +1,4 @@
-service: law-ai-backend
+service: lawai-serverless
 
 provider:
   name: aws
@@ -7,9 +7,6 @@ provider:
   stage: ${opt:stage, 'dev'}
   
   environment:
-    AWS_REGION: ${env:AWS_REGION, 'us-east-1'}
-    AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}
-    AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}
     COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
     COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
     COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
@@ -61,7 +58,7 @@ provider:
 
 functions:
   api:
-    handler: lambda.handler
+    handler: lambda-direct.handler
     timeout: 30
     events:
       - http:
@@ -97,6 +94,10 @@ plugins:
 custom:
   dotenv:
     path: .env
+    exclude:
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
 
 package:
   exclude:
