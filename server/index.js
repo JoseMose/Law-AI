@@ -1166,54 +1166,60 @@ app.delete('/cases/:id', authenticateToken, async (req, res) => {
 // Use error handling middleware (register after all routes)
 app.use(errorHandler);
 
-// Start server
-async function startServer() {
-  try {
-    console.log('Environment Check:');
-    console.log('AWS_REGION:', process.env.AWS_REGION);
-    console.log('AWS_ACCESS_KEY_ID (length):', process.env.AWS_ACCESS_KEY_ID?.length || 0);
-    console.log('AWS_SECRET_ACCESS_KEY (length):', process.env.AWS_SECRET_ACCESS_KEY?.length || 0);
-    console.log('COGNITO_USER_POOL_ID:', process.env.COGNITO_USER_POOL_ID);
-    console.log('COGNITO_CLIENT_ID:', process.env.COGNITO_CLIENT_ID);
+// Export the Express app for Lambda use
+module.exports = app;
 
-    // Start the server
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Server URL: http://localhost:${PORT}`);
-      console.log('Available endpoints:');
-      console.log('- POST /auth/signin');
-      console.log('- POST /auth/signup');
-      console.log('- POST /auth/confirm');
-      console.log('- GET /health');
-      // Print registered routes for debugging (stack length and kinds)
-      try {
-        const stack = (app._router && app._router.stack) || [];
-        console.log('Router stack length:', stack.length);
-        const details = stack.map((s, i) => {
-          return {
-            index: i,
-            name: s.name || (s.handle && s.handle.name) || null,
-            routePath: s.route && s.route.path,
-            methods: s.route && s.route.methods
-          };
-        });
-        console.log('Router stack details:', JSON.stringify(details, null, 2));
-      } catch (e) {
-        console.warn('Could not enumerate routes:', e.message || e);
+// Start server only when not running in Lambda environment
+if (require.main === module) {
+  // Start server
+  async function startServer() {
+    try {
+      console.log('Environment Check:');
+      console.log('AWS_REGION:', process.env.AWS_REGION);
+      console.log('AWS_ACCESS_KEY_ID (length):', process.env.AWS_ACCESS_KEY_ID?.length || 0);
+      console.log('AWS_SECRET_ACCESS_KEY (length):', process.env.AWS_SECRET_ACCESS_KEY?.length || 0);
+      console.log('COGNITO_USER_POOL_ID:', process.env.COGNITO_USER_POOL_ID);
+      console.log('COGNITO_CLIENT_ID:', process.env.COGNITO_CLIENT_ID);
+
+      // Start the server
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`Server URL: http://localhost:${PORT}`);
+        console.log('Available endpoints:');
+        console.log('- POST /auth/signin');
+        console.log('- POST /auth/signup');
+        console.log('- POST /auth/confirm');
+        console.log('- GET /health');
+        // Print registered routes for debugging (stack length and kinds)
+        try {
+          const stack = (app._router && app._router.stack) || [];
+          console.log('Router stack length:', stack.length);
+          const details = stack.map((s, i) => {
+            return {
+              index: i,
+              name: s.name || (s.handle && s.handle.name) || null,
+              routePath: s.route && s.route.path,
+              methods: s.route && s.route.methods
+            };
+          });
+          console.log('Router stack details:', JSON.stringify(details, null, 2));
+        } catch (e) {
+          console.warn('Could not enumerate routes:', e.message || e);
+        }
+      });
+      // Optionally update client settings if enabled
+      if (AUTO_UPDATE_CLIENT) {
+        try {
+          await updateCognitoClientSettings();
+        } catch (err) {
+          console.error('Failed to auto-update Cognito client settings:', err);
+        }
       }
-    });
-    // Optionally update client settings if enabled
-    if (AUTO_UPDATE_CLIENT) {
-      try {
-        await updateCognitoClientSettings();
-      } catch (err) {
-        console.error('Failed to auto-update Cognito client settings:', err);
-      }
+    } catch (error) {
+      console.error('Error starting server:', error);
+      process.exit(1);
     }
-  } catch (error) {
-    console.error('Error starting server:', error);
-    process.exit(1);
   }
-}
 
-startServer();
+  startServer();
+}

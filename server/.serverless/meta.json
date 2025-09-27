@@ -1,0 +1,259 @@
+{
+  "/Users/josephesfandiari/Lawyer App/law-ai/server/serverless.yml": {
+    "versionFramework": "4.19.1",
+    "servicePath": "/Users/josephesfandiari/Lawyer App/law-ai/server/serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "law-ai-backend",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs18.x",
+        "region": "us-east-1",
+        "stage": "dev",
+        "environment": {
+          "AWS_REGION": "us-east-1",
+          "AWS_ACCESS_KEY_ID": "<REDACTED>",
+          "AWS_SECRET_ACCESS_KEY": "<REDACTED>",
+          "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+          "COGNITO_CLIENT_SECRET": "<REDACTED>",
+          "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+          "S3_BUCKET_NAME": "contractfiles1",
+          "TEXTRACT_ENABLED": "false",
+          "BEDROCK_ENABLED": "false",
+          "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+          "COGNITO_AUTO_UPDATE_CLIENT": "false",
+          "PORT": "3001"
+        },
+        "iamRoleStatements": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:DeleteObject",
+              "s3:GetObjectVersion"
+            ],
+            "Resource": "arn:aws:s3:::contractfiles1/*"
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:ListBucket"
+            ],
+            "Resource": "arn:aws:s3:::contractfiles1"
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "cognito-idp:AdminInitiateAuth",
+              "cognito-idp:AdminGetUser",
+              "cognito-idp:AdminRespondToAuthChallenge",
+              "cognito-idp:InitiateAuth",
+              "cognito-idp:RespondToAuthChallenge",
+              "cognito-idp:GetUser",
+              "cognito-idp:SignUp",
+              "cognito-idp:ConfirmSignUp",
+              "cognito-idp:ForgotPassword",
+              "cognito-idp:ConfirmForgotPassword",
+              "cognito-idp:UpdateUserPoolClient"
+            ],
+            "Resource": [
+              "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+              "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+            ]
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "textract:StartDocumentTextDetection",
+              "textract:GetDocumentTextDetection"
+            ],
+            "Resource": "*"
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "bedrock:InvokeModel"
+            ],
+            "Resource": "*"
+          }
+        ],
+        "versionFunctions": true
+      },
+      "functions": {
+        "api": {
+          "handler": "lambda.handler",
+          "timeout": 30,
+          "events": [
+            {
+              "http": {
+                "path": "/{proxy+}",
+                "method": "ANY",
+                "cors": {
+                  "origin": "*",
+                  "headers": [
+                    "Content-Type",
+                    "X-Amz-Date",
+                    "Authorization",
+                    "X-Api-Key",
+                    "X-Amz-Security-Token",
+                    "X-Amz-User-Agent"
+                  ],
+                  "allowCredentials": "<REDACTED>"
+                }
+              }
+            },
+            {
+              "http": {
+                "path": "/",
+                "method": "ANY",
+                "cors": {
+                  "origin": "*",
+                  "headers": [
+                    "Content-Type",
+                    "X-Amz-Date",
+                    "Authorization",
+                    "X-Api-Key",
+                    "X-Amz-Security-Token",
+                    "X-Amz-User-Agent"
+                  ],
+                  "allowCredentials": "<REDACTED>"
+                }
+              }
+            }
+          ],
+          "name": "law-ai-backend-dev-api"
+        }
+      },
+      "plugins": [
+        "serverless-dotenv-plugin"
+      ],
+      "custom": {
+        "dotenv": {
+          "path": ".env"
+        }
+      },
+      "package": {
+        "exclude": [
+          "node_modules/**",
+          ".git/**",
+          ".env",
+          "README.md",
+          ".gitignore"
+        ],
+        "include": [
+          "node_modules/**",
+          "lambda.js",
+          "index.js",
+          "data/**",
+          "package.json"
+        ],
+        "artifactsS3KeyDirname": "serverless/law-ai-backend/dev/code-artifacts"
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "region": "us-east-1",
+      "stage": "dev",
+      "environment": {
+        "AWS_REGION": "us-east-1",
+        "AWS_ACCESS_KEY_ID": "<REDACTED>",
+        "AWS_SECRET_ACCESS_KEY": "<REDACTED>",
+        "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+        "COGNITO_CLIENT_SECRET": "<REDACTED>",
+        "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+        "S3_BUCKET_NAME": "contractfiles1",
+        "TEXTRACT_ENABLED": "false",
+        "BEDROCK_ENABLED": "false",
+        "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "COGNITO_AUTO_UPDATE_CLIENT": "false",
+        "PORT": "3001"
+      },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:GetObjectVersion"
+          ],
+          "Resource": "arn:aws:s3:::contractfiles1/*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:ListBucket"
+          ],
+          "Resource": "arn:aws:s3:::contractfiles1"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "cognito-idp:AdminInitiateAuth",
+            "cognito-idp:AdminGetUser",
+            "cognito-idp:AdminRespondToAuthChallenge",
+            "cognito-idp:InitiateAuth",
+            "cognito-idp:RespondToAuthChallenge",
+            "cognito-idp:GetUser",
+            "cognito-idp:SignUp",
+            "cognito-idp:ConfirmSignUp",
+            "cognito-idp:ForgotPassword",
+            "cognito-idp:ConfirmForgotPassword",
+            "cognito-idp:UpdateUserPoolClient"
+          ],
+          "Resource": [
+            "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+            "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+          ]
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "textract:StartDocumentTextDetection",
+            "textract:GetDocumentTextDetection"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "bedrock:InvokeModel"
+          ],
+          "Resource": "*"
+        }
+      ],
+      "versionFunctions": true
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": true,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "error": {
+      "message": "User: arn:aws:iam::663003476104:user/JosephEsfandiari is not authorized to perform: cloudformation:DescribeStackResource on resource: arn:aws:cloudformation:us-east-1:663003476104:stack/law-ai-backend-dev/* because no identity-based policy allows the cloudformation:DescribeStackResource action",
+      "stack": "ServerlessError2: User: arn:aws:iam::663003476104:user/JosephEsfandiari is not authorized to perform: cloudformation:DescribeStackResource on resource: arn:aws:cloudformation:us-east-1:663003476104:stack/law-ai-backend-dev/* because no identity-based policy allows the cloudformation:DescribeStackResource action\n    at file:///Users/josephesfandiari/.serverless/releases/4.19.1/package/dist/sf-core.js:1035:36\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async persistentRequest (file:///Users/josephesfandiari/.serverless/releases/4.19.1/package/dist/sf-core.js:1034:1977)",
+      "code": "AWS_CLOUD_FORMATION_DESCRIBE_STACK_RESOURCE_ACCESS_DENIED"
+    },
+    "serviceRawFile": "service: law-ai-backend\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: us-east-1\n  stage: ${opt:stage, 'dev'}\n  \n  environment:\n    AWS_REGION: ${env:AWS_REGION, 'us-east-1'}\n    AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}\n    AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}\n    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}\n    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}\n    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}\n    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}\n    TEXTRACT_ENABLED: ${env:TEXTRACT_ENABLED, 'false'}\n    BEDROCK_ENABLED: ${env:BEDROCK_ENABLED, 'false'}\n    BEDROCK_MODEL: ${env:BEDROCK_MODEL, 'anthropic.claude-3-sonnet-20240229-v1:0'}\n    COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT, 'false'}\n  \n  iamRoleStatements:\n    - Effect: Allow\n      Action:\n        - s3:GetObject\n        - s3:PutObject\n        - s3:DeleteObject\n        - s3:GetObjectVersion\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}/*\"\n    - Effect: Allow\n      Action:\n        - s3:ListBucket\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}\"\n    - Effect: Allow\n      Action:\n        - cognito-idp:AdminInitiateAuth\n        - cognito-idp:AdminGetUser\n        - cognito-idp:AdminRespondToAuthChallenge\n        - cognito-idp:InitiateAuth\n        - cognito-idp:RespondToAuthChallenge\n        - cognito-idp:GetUser\n        - cognito-idp:SignUp\n        - cognito-idp:ConfirmSignUp\n        - cognito-idp:ForgotPassword\n        - cognito-idp:ConfirmForgotPassword\n        - cognito-idp:UpdateUserPoolClient\n      Resource:\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}\"\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}/*\"\n    - Effect: Allow\n      Action:\n        - textract:StartDocumentTextDetection\n        - textract:GetDocumentTextDetection\n      Resource: \"*\"\n    - Effect: Allow\n      Action:\n        - bedrock:InvokeModel\n      Resource: \"*\"\n\nfunctions:\n  api:\n    handler: lambda.handler\n    timeout: 30\n    events:\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n      - http:\n          path: /\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n\nplugins:\n  - serverless-dotenv-plugin\n\ncustom:\n  dotenv:\n    path: .env\n\npackage:\n  exclude:\n    - node_modules/**\n    - .git/**\n    - .env\n    - README.md\n    - .gitignore\n  include:\n    - node_modules/**\n    - lambda.js\n    - index.js\n    - data/**\n    - package.json",
+    "command": [
+      "deploy"
+    ],
+    "options": {},
+    "orgId": "9fc99ae7-f5f3-4af1-82f9-2d5a35cbce05",
+    "orgName": "josephesfandiari",
+    "userId": "kYjylWtkXhrQMGhMk2",
+    "userName": "josephesfandiari",
+    "serviceProviderAwsAccountId": "663003476104",
+    "serviceProviderAwsCfStackId": null,
+    "serviceProviderAwsCfStackCreated": null,
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": null,
+    "serviceProviderAwsCfStackOutputs": null
+  }
+}
