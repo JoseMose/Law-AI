@@ -10,7 +10,19 @@ const app = express();
 
 // Configure CORS with specific options
 const corsOptions = {
-  origin: 'http://localhost:3000', // React app's URL
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost for development
+    if (origin.includes('localhost')) return callback(null, true);
+    
+    // Allow Amplify domains
+    if (origin.includes('amplifyapp.com')) return callback(null, true);
+    
+    // Allow your custom domain if any
+    return callback(null, true); // For now, allow all origins in serverless
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -32,20 +44,17 @@ app.use((req, res, next) => {
 
 // Use environment variables for sensitive data
 const cognitoClient = new CognitoIdentityProvider({ 
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  }
+  region: 'us-east-1'
+  // In Lambda, credentials are automatically provided by IAM role
 });
 
 // S3 client for presigning uploads
-const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+const S3_REGION = 'us-east-1';
 const S3_BUCKET = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET;
-const s3Client = new S3Client({ region: S3_REGION, credentials: {
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-}});
+const s3Client = new S3Client({ 
+  region: S3_REGION
+  // In Lambda, credentials are automatically provided by IAM role
+});
 
 // Multer setup for parsing multipart/form-data (single file)
 const upload = multer({
@@ -789,7 +798,7 @@ app.post('/contracts/review', authenticateToken, express.json(), async (req, res
     if (textractEnabled) {
       try {
         const { TextractClient, StartDocumentTextDetectionCommand, GetDocumentTextDetectionCommand } = require('@aws-sdk/client-textract');
-        const texClient = new TextractClient({ region: S3_REGION, credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY } });
+        const texClient = new TextractClient({ region: S3_REGION });
         // Start async job (works for PDFs in S3)
         const startRes = await texClient.send(new StartDocumentTextDetectionCommand({ DocumentLocation: { S3Object: { Bucket: S3_BUCKET, Name: key } } }));
         const jobId = startRes.JobId;
@@ -848,7 +857,7 @@ The company disclaims liability without limitation. The term is indefinite and a
       try {
         // dynamic import so server doesn't crash if package missing
         const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
-        const br = new BedrockRuntimeClient({ region: S3_REGION, credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY } });
+        const br = new BedrockRuntimeClient({ region: S3_REGION });
         const modelId = process.env.BEDROCK_MODEL || 'amazon.titan-2024';
         const prompt = `Analyze the following contract and return a JSON array of issues with keys: id, type, snippet, suggestion.\n\n${extractedText}`;
         const invokeCmd = new InvokeModelCommand({ modelId, body: Buffer.from(prompt), contentType: 'text/plain' });
@@ -1003,7 +1012,7 @@ app.post('/contracts/fix', authenticateToken, express.json(), async (req, res) =
     if (bedrockEnabled && base) {
       try {
         const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
-        const br = new BedrockRuntimeClient({ region: S3_REGION, credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY } });
+        const br = new BedrockRuntimeClient({ region: S3_REGION });
         const modelId = process.env.BEDROCK_MODEL || 'amazon.titan-2024';
         const prompt = `Produce a corrected version of the following contract text. Keep legal meaning but make suggestions to fix issues. Return only the corrected text.\n\n${base}`;
         const invokeCmd = new InvokeModelCommand({ modelId, body: Buffer.from(prompt), contentType: 'text/plain' });

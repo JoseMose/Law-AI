@@ -1,0 +1,1786 @@
+{
+  "/Users/josephesfandiari/Lawyer App/law-ai/server/serverless.yml": {
+    "versionFramework": "4.19.1",
+    "servicePath": "/Users/josephesfandiari/Lawyer App/law-ai/server/serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "lawai-serverless",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs18.x",
+        "region": "us-east-1",
+        "stage": "dev",
+        "environment": {
+          "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+          "COGNITO_CLIENT_SECRET": "<REDACTED>",
+          "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+          "S3_BUCKET_NAME": "contractfiles1",
+          "TEXTRACT_ENABLED": "false",
+          "BEDROCK_ENABLED": "false",
+          "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+          "COGNITO_AUTO_UPDATE_CLIENT": "false",
+          "PORT": "3001"
+        },
+        "iamRoleStatements": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:DeleteObject",
+              "s3:GetObjectVersion"
+            ],
+            "Resource": "arn:aws:s3:::contractfiles1/*"
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:ListBucket"
+            ],
+            "Resource": "arn:aws:s3:::contractfiles1"
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "cognito-idp:AdminInitiateAuth",
+              "cognito-idp:AdminGetUser",
+              "cognito-idp:AdminRespondToAuthChallenge",
+              "cognito-idp:InitiateAuth",
+              "cognito-idp:RespondToAuthChallenge",
+              "cognito-idp:GetUser",
+              "cognito-idp:SignUp",
+              "cognito-idp:ConfirmSignUp",
+              "cognito-idp:ForgotPassword",
+              "cognito-idp:ConfirmForgotPassword",
+              "cognito-idp:UpdateUserPoolClient"
+            ],
+            "Resource": [
+              "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+              "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+            ]
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "textract:StartDocumentTextDetection",
+              "textract:GetDocumentTextDetection"
+            ],
+            "Resource": "*"
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "bedrock:InvokeModel"
+            ],
+            "Resource": "*"
+          }
+        ],
+        "versionFunctions": true,
+        "compiledCloudFormationTemplate": {
+          "AWSTemplateFormatVersion": "2010-09-09",
+          "Description": "The AWS CloudFormation template for this Serverless application",
+          "Resources": {
+            "ApiLogGroup": {
+              "Type": "AWS::Logs::LogGroup",
+              "Properties": {
+                "LogGroupName": "/aws/lambda/lawai-serverless-dev-api"
+              }
+            },
+            "IamRoleLambdaExecution": {
+              "Type": "AWS::IAM::Role",
+              "Properties": {
+                "AssumeRolePolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": {
+                        "Service": [
+                          "lambda.amazonaws.com"
+                        ]
+                      },
+                      "Action": [
+                        "sts:AssumeRole"
+                      ]
+                    }
+                  ]
+                },
+                "Policies": [
+                  {
+                    "PolicyName": {
+                      "Fn::Join": [
+                        "-",
+                        [
+                          "lawai-serverless",
+                          "dev",
+                          "lambda"
+                        ]
+                      ]
+                    },
+                    "PolicyDocument": {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "logs:CreateLogStream",
+                            "logs:CreateLogGroup",
+                            "logs:TagResource"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/lawai-serverless-dev*:*"
+                            }
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "logs:PutLogEvents"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/lawai-serverless-dev*:*:*"
+                            }
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "s3:GetObject",
+                            "s3:PutObject",
+                            "s3:DeleteObject",
+                            "s3:GetObjectVersion"
+                          ],
+                          "Resource": "arn:aws:s3:::contractfiles1/*"
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "s3:ListBucket"
+                          ],
+                          "Resource": "arn:aws:s3:::contractfiles1"
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "cognito-idp:AdminInitiateAuth",
+                            "cognito-idp:AdminGetUser",
+                            "cognito-idp:AdminRespondToAuthChallenge",
+                            "cognito-idp:InitiateAuth",
+                            "cognito-idp:RespondToAuthChallenge",
+                            "cognito-idp:GetUser",
+                            "cognito-idp:SignUp",
+                            "cognito-idp:ConfirmSignUp",
+                            "cognito-idp:ForgotPassword",
+                            "cognito-idp:ConfirmForgotPassword",
+                            "cognito-idp:UpdateUserPoolClient"
+                          ],
+                          "Resource": [
+                            "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+                            "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "textract:StartDocumentTextDetection",
+                            "textract:GetDocumentTextDetection"
+                          ],
+                          "Resource": "*"
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "bedrock:InvokeModel"
+                          ],
+                          "Resource": "*"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "Path": "/",
+                "RoleName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "lawai-serverless",
+                      "dev",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "lambdaRole"
+                    ]
+                  ]
+                }
+              }
+            },
+            "ApiLambdaFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Code": {
+                  "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+                  "S3Key": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z/lawai-serverless.zip"
+                },
+                "Handler": "lambda-direct.handler",
+                "Runtime": "nodejs18.x",
+                "FunctionName": "lawai-serverless-dev-api",
+                "MemorySize": 1024,
+                "Timeout": 30,
+                "Environment": {
+                  "Variables": {
+                    "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+                    "COGNITO_CLIENT_SECRET": "<REDACTED>",
+                    "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+                    "S3_BUCKET_NAME": "contractfiles1",
+                    "TEXTRACT_ENABLED": "false",
+                    "BEDROCK_ENABLED": "false",
+                    "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+                    "COGNITO_AUTO_UPDATE_CLIENT": "false",
+                    "PORT": "3001"
+                  }
+                },
+                "Role": {
+                  "Fn::GetAtt": [
+                    "IamRoleLambdaExecution",
+                    "Arn"
+                  ]
+                }
+              },
+              "DependsOn": [
+                "ApiLogGroup"
+              ]
+            },
+            "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg": {
+              "Type": "AWS::Lambda::Version",
+              "DeletionPolicy": "Retain",
+              "Properties": {
+                "FunctionName": {
+                  "Ref": "ApiLambdaFunction"
+                },
+                "CodeSha256": "29HYUouymwbaROlDkeGwl1Hz+5P+dx/eM00fY6k2eTc="
+              }
+            },
+            "ApiGatewayRestApi": {
+              "Type": "AWS::ApiGateway::RestApi",
+              "Properties": {
+                "Name": "dev-lawai-serverless",
+                "EndpointConfiguration": {
+                  "Types": [
+                    "EDGE"
+                  ]
+                },
+                "Policy": ""
+              }
+            },
+            "ApiGatewayResourceProxyVar": {
+              "Type": "AWS::ApiGateway::Resource",
+              "Properties": {
+                "ParentId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "PathPart": "{proxy+}",
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayMethodProxyVarOptions": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "AuthorizationType": "NONE",
+                "HttpMethod": "OPTIONS",
+                "MethodResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": true,
+                      "method.response.header.Access-Control-Allow-Headers": true,
+                      "method.response.header.Access-Control-Allow-Methods": true
+                    },
+                    "ResponseModels": {}
+                  }
+                ],
+                "RequestParameters": {},
+                "Integration": {
+                  "Type": "MOCK",
+                  "RequestTemplates": {
+                    "application/json": "{statusCode:200}"
+                  },
+                  "ContentHandling": "CONVERT_TO_TEXT",
+                  "IntegrationResponses": [
+                    {
+                      "StatusCode": "200",
+                      "ResponseParameters": {
+                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                      },
+                      "ResponseTemplates": {
+                        "application/json": ""
+                      }
+                    }
+                  ]
+                },
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourceProxyVar"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayMethodOptions": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "AuthorizationType": "NONE",
+                "HttpMethod": "OPTIONS",
+                "MethodResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": true,
+                      "method.response.header.Access-Control-Allow-Headers": true,
+                      "method.response.header.Access-Control-Allow-Methods": true
+                    },
+                    "ResponseModels": {}
+                  }
+                ],
+                "RequestParameters": {},
+                "Integration": {
+                  "Type": "MOCK",
+                  "RequestTemplates": {
+                    "application/json": "{statusCode:200}"
+                  },
+                  "ContentHandling": "CONVERT_TO_TEXT",
+                  "IntegrationResponses": [
+                    {
+                      "StatusCode": "200",
+                      "ResponseParameters": {
+                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                      },
+                      "ResponseTemplates": {
+                        "application/json": ""
+                      }
+                    }
+                  ]
+                },
+                "ResourceId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayMethodProxyVarAny": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "HttpMethod": "ANY",
+                "RequestParameters": {},
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourceProxyVar"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "ApiKeyRequired": "<REDACTED>",
+                "AuthorizationType": "NONE",
+                "Integration": {
+                  "IntegrationHttpMethod": "POST",
+                  "Type": "AWS_PROXY",
+                  "Uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "ApiLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  }
+                },
+                "MethodResponses": []
+              },
+              "DependsOn": [
+                "ApiLambdaPermissionApiGateway"
+              ]
+            },
+            "ApiGatewayMethodAny": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "HttpMethod": "ANY",
+                "RequestParameters": {},
+                "ResourceId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "ApiKeyRequired": "<REDACTED>",
+                "AuthorizationType": "NONE",
+                "Integration": {
+                  "IntegrationHttpMethod": "POST",
+                  "Type": "AWS_PROXY",
+                  "Uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "ApiLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  }
+                },
+                "MethodResponses": []
+              },
+              "DependsOn": [
+                "ApiLambdaPermissionApiGateway"
+              ]
+            },
+            "ApiGatewayDeployment1759012687623": {
+              "Type": "AWS::ApiGateway::Deployment",
+              "Properties": {
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "StageName": "dev"
+              },
+              "DependsOn": [
+                "ApiGatewayMethodProxyVarOptions",
+                "ApiGatewayMethodOptions",
+                "ApiGatewayMethodProxyVarAny",
+                "ApiGatewayMethodAny"
+              ]
+            },
+            "ApiLambdaPermissionApiGateway": {
+              "Type": "AWS::Lambda::Permission",
+              "Properties": {
+                "FunctionName": {
+                  "Fn::GetAtt": [
+                    "ApiLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":execute-api:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":",
+                      {
+                        "Ref": "ApiGatewayRestApi"
+                      },
+                      "/*/*"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "Outputs": {
+            "ServerlessDeploymentBucketName": {
+              "Value": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+              "Export": {
+                "Name": "sls-lawai-serverless-dev-ServerlessDeploymentBucketName"
+              }
+            },
+            "ApiLambdaFunctionQualifiedArn": {
+              "Description": "Current Lambda function version",
+              "Value": {
+                "Ref": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+              },
+              "Export": {
+                "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
+              }
+            },
+            "ServiceEndpoint": {
+              "Description": "URL of the service endpoint",
+              "Value": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "https://",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    ".execute-api.",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ".",
+                    {
+                      "Ref": "AWS::URLSuffix"
+                    },
+                    "/dev"
+                  ]
+                ]
+              },
+              "Export": {
+                "Name": "sls-lawai-serverless-dev-ServiceEndpoint"
+              }
+            }
+          }
+        },
+        "vpc": {}
+      },
+      "functions": {
+        "api": {
+          "handler": "lambda-direct.handler",
+          "timeout": 30,
+          "events": [
+            {
+              "http": {
+                "path": "{proxy+}",
+                "method": "any",
+                "cors": {
+                  "origin": "*",
+                  "methods": [
+                    "OPTIONS",
+                    "ANY"
+                  ],
+                  "headers": [
+                    "Content-Type",
+                    "X-Amz-Date",
+                    "Authorization",
+                    "X-Api-Key",
+                    "X-Amz-Security-Token",
+                    "X-Amz-User-Agent"
+                  ],
+                  "allowCredentials": "<REDACTED>"
+                },
+                "integration": "AWS_PROXY"
+              }
+            },
+            {
+              "http": {
+                "path": "",
+                "method": "any",
+                "cors": {
+                  "origin": "*",
+                  "methods": [
+                    "OPTIONS",
+                    "ANY"
+                  ],
+                  "headers": [
+                    "Content-Type",
+                    "X-Amz-Date",
+                    "Authorization",
+                    "X-Api-Key",
+                    "X-Amz-Security-Token",
+                    "X-Amz-User-Agent"
+                  ],
+                  "allowCredentials": "<REDACTED>"
+                },
+                "integration": "AWS_PROXY"
+              }
+            }
+          ],
+          "name": "lawai-serverless-dev-api",
+          "package": {},
+          "memory": 1024,
+          "runtime": "nodejs18.x",
+          "vpc": {},
+          "versionLogicalId": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+        }
+      },
+      "plugins": [
+        "serverless-dotenv-plugin"
+      ],
+      "custom": {
+        "dotenv": {
+          "path": ".env",
+          "exclude": [
+            "AWS_REGION",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY"
+          ]
+        }
+      },
+      "package": {
+        "exclude": [
+          "node_modules/**",
+          ".git/**",
+          ".env",
+          "README.md",
+          ".gitignore"
+        ],
+        "include": [
+          "node_modules/**",
+          "lambda.js",
+          "index.js",
+          "data/**",
+          "package.json"
+        ],
+        "artifactsS3KeyDirname": "serverless/lawai-serverless/dev/code-artifacts",
+        "deploymentBucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+        "artifact": "/Users/josephesfandiari/Lawyer App/law-ai/server/.serverless/lawai-serverless.zip",
+        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z"
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "region": "us-east-1",
+      "stage": "dev",
+      "environment": {
+        "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+        "COGNITO_CLIENT_SECRET": "<REDACTED>",
+        "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+        "S3_BUCKET_NAME": "contractfiles1",
+        "TEXTRACT_ENABLED": "false",
+        "BEDROCK_ENABLED": "false",
+        "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "COGNITO_AUTO_UPDATE_CLIENT": "false",
+        "PORT": "3001"
+      },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:GetObjectVersion"
+          ],
+          "Resource": "arn:aws:s3:::contractfiles1/*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:ListBucket"
+          ],
+          "Resource": "arn:aws:s3:::contractfiles1"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "cognito-idp:AdminInitiateAuth",
+            "cognito-idp:AdminGetUser",
+            "cognito-idp:AdminRespondToAuthChallenge",
+            "cognito-idp:InitiateAuth",
+            "cognito-idp:RespondToAuthChallenge",
+            "cognito-idp:GetUser",
+            "cognito-idp:SignUp",
+            "cognito-idp:ConfirmSignUp",
+            "cognito-idp:ForgotPassword",
+            "cognito-idp:ConfirmForgotPassword",
+            "cognito-idp:UpdateUserPoolClient"
+          ],
+          "Resource": [
+            "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+            "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+          ]
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "textract:StartDocumentTextDetection",
+            "textract:GetDocumentTextDetection"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "bedrock:InvokeModel"
+          ],
+          "Resource": "*"
+        }
+      ],
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/lawai-serverless-dev-api"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "lawai-serverless",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/lawai-serverless-dev*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/lawai-serverless-dev*:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "s3:GetObject",
+                          "s3:PutObject",
+                          "s3:DeleteObject",
+                          "s3:GetObjectVersion"
+                        ],
+                        "Resource": "arn:aws:s3:::contractfiles1/*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "s3:ListBucket"
+                        ],
+                        "Resource": "arn:aws:s3:::contractfiles1"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "cognito-idp:AdminInitiateAuth",
+                          "cognito-idp:AdminGetUser",
+                          "cognito-idp:AdminRespondToAuthChallenge",
+                          "cognito-idp:InitiateAuth",
+                          "cognito-idp:RespondToAuthChallenge",
+                          "cognito-idp:GetUser",
+                          "cognito-idp:SignUp",
+                          "cognito-idp:ConfirmSignUp",
+                          "cognito-idp:ForgotPassword",
+                          "cognito-idp:ConfirmForgotPassword",
+                          "cognito-idp:UpdateUserPoolClient"
+                        ],
+                        "Resource": [
+                          "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+                          "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "textract:StartDocumentTextDetection",
+                          "textract:GetDocumentTextDetection"
+                        ],
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "bedrock:InvokeModel"
+                        ],
+                        "Resource": "*"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "lawai-serverless",
+                    "dev",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "ApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+                "S3Key": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z/lawai-serverless.zip"
+              },
+              "Handler": "lambda-direct.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "lawai-serverless-dev-api",
+              "MemorySize": 1024,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+                  "COGNITO_CLIENT_SECRET": "<REDACTED>",
+                  "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+                  "S3_BUCKET_NAME": "contractfiles1",
+                  "TEXTRACT_ENABLED": "false",
+                  "BEDROCK_ENABLED": "false",
+                  "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+                  "COGNITO_AUTO_UPDATE_CLIENT": "false",
+                  "PORT": "3001"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "ApiLogGroup"
+            ]
+          },
+          "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ApiLambdaFunction"
+              },
+              "CodeSha256": "29HYUouymwbaROlDkeGwl1Hz+5P+dx/eM00fY6k2eTc="
+            }
+          },
+          "ApiGatewayRestApi": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+              "Name": "dev-lawai-serverless",
+              "EndpointConfiguration": {
+                "Types": [
+                  "EDGE"
+                ]
+              },
+              "Policy": ""
+            }
+          },
+          "ApiGatewayResourceProxyVar": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "{proxy+}",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodProxyVarOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProxyVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodProxyVarAny": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "ANY",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProxyVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": "<REDACTED>",
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ApiLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ApiLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAny": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "ANY",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": "<REDACTED>",
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ApiLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ApiLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayDeployment1759012687623": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "Properties": {
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "StageName": "dev"
+            },
+            "DependsOn": [
+              "ApiGatewayMethodProxyVarOptions",
+              "ApiGatewayMethodOptions",
+              "ApiGatewayMethodProxyVarAny",
+              "ApiGatewayMethodAny"
+            ]
+          },
+          "ApiLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "ApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+            "Export": {
+              "Name": "sls-lawai-serverless-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "ApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+            },
+            "Export": {
+              "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "ServiceEndpoint": {
+            "Description": "URL of the service endpoint",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  },
+                  "/dev"
+                ]
+              ]
+            },
+            "Export": {
+              "Name": "sls-lawai-serverless-dev-ServiceEndpoint"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "serviceRawFile": "service: lawai-serverless\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: us-east-1\n  stage: ${opt:stage, 'dev'}\n  \n  environment:\n    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}\n    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}\n    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}\n    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}\n    TEXTRACT_ENABLED: ${env:TEXTRACT_ENABLED, 'false'}\n    BEDROCK_ENABLED: ${env:BEDROCK_ENABLED, 'false'}\n    BEDROCK_MODEL: ${env:BEDROCK_MODEL, 'anthropic.claude-3-sonnet-20240229-v1:0'}\n    COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT, 'false'}\n  \n  iamRoleStatements:\n    - Effect: Allow\n      Action:\n        - s3:GetObject\n        - s3:PutObject\n        - s3:DeleteObject\n        - s3:GetObjectVersion\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}/*\"\n    - Effect: Allow\n      Action:\n        - s3:ListBucket\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}\"\n    - Effect: Allow\n      Action:\n        - cognito-idp:AdminInitiateAuth\n        - cognito-idp:AdminGetUser\n        - cognito-idp:AdminRespondToAuthChallenge\n        - cognito-idp:InitiateAuth\n        - cognito-idp:RespondToAuthChallenge\n        - cognito-idp:GetUser\n        - cognito-idp:SignUp\n        - cognito-idp:ConfirmSignUp\n        - cognito-idp:ForgotPassword\n        - cognito-idp:ConfirmForgotPassword\n        - cognito-idp:UpdateUserPoolClient\n      Resource:\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}\"\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}/*\"\n    - Effect: Allow\n      Action:\n        - textract:StartDocumentTextDetection\n        - textract:GetDocumentTextDetection\n      Resource: \"*\"\n    - Effect: Allow\n      Action:\n        - bedrock:InvokeModel\n      Resource: \"*\"\n\nfunctions:\n  api:\n    handler: lambda-direct.handler\n    timeout: 30\n    events:\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n      - http:\n          path: /\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n\nplugins:\n  - serverless-dotenv-plugin\n\ncustom:\n  dotenv:\n    path: .env\n    exclude:\n      - AWS_REGION\n      - AWS_ACCESS_KEY_ID\n      - AWS_SECRET_ACCESS_KEY\n\npackage:\n  exclude:\n    - node_modules/**\n    - .git/**\n    - .env\n    - README.md\n    - .gitignore\n  include:\n    - node_modules/**\n    - lambda.js\n    - index.js\n    - data/**\n    - package.json",
+    "command": [
+      "deploy"
+    ],
+    "options": {},
+    "orgId": "9fc99ae7-f5f3-4af1-82f9-2d5a35cbce05",
+    "orgName": "josephesfandiari",
+    "userId": "kYjylWtkXhrQMGhMk2",
+    "userName": "josephesfandiari",
+    "serviceProviderAwsAccountId": "663003476104",
+    "serviceProviderAwsCfStackName": "lawai-serverless-dev",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:663003476104:stack/lawai-serverless-dev/7810c7a0-9bef-11f0-bf40-0e124f123293",
+    "serviceProviderAwsCfStackCreated": "2025-09-27T22:15:26.386Z",
+    "serviceProviderAwsCfStackUpdated": "2025-09-27T22:35:52.087Z",
+    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "ApiLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:us-east-1:663003476104:function:lawai-serverless-dev-api:8",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "ServiceEndpoint",
+        "OutputValue": "https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev",
+        "Description": "URL of the service endpoint",
+        "ExportName": "sls-lawai-serverless-dev-ServiceEndpoint"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+        "ExportName": "sls-lawai-serverless-dev-ServerlessDeploymentBucketName"
+      }
+    ],
+    "compiledCloudFormationTemplate": {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "The AWS CloudFormation template for this Serverless application",
+      "Resources": {
+        "ApiLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/lawai-serverless-dev-api"
+          }
+        },
+        "IamRoleLambdaExecution": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": [
+                      "lambda.amazonaws.com"
+                    ]
+                  },
+                  "Action": [
+                    "sts:AssumeRole"
+                  ]
+                }
+              ]
+            },
+            "Policies": [
+              {
+                "PolicyName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "lawai-serverless",
+                      "dev",
+                      "lambda"
+                    ]
+                  ]
+                },
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:CreateLogGroup",
+                        "logs:TagResource"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/lawai-serverless-dev*:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/lawai-serverless-dev*:*:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "s3:GetObject",
+                        "s3:PutObject",
+                        "s3:DeleteObject",
+                        "s3:GetObjectVersion"
+                      ],
+                      "Resource": "arn:aws:s3:::contractfiles1/*"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "s3:ListBucket"
+                      ],
+                      "Resource": "arn:aws:s3:::contractfiles1"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "cognito-idp:AdminInitiateAuth",
+                        "cognito-idp:AdminGetUser",
+                        "cognito-idp:AdminRespondToAuthChallenge",
+                        "cognito-idp:InitiateAuth",
+                        "cognito-idp:RespondToAuthChallenge",
+                        "cognito-idp:GetUser",
+                        "cognito-idp:SignUp",
+                        "cognito-idp:ConfirmSignUp",
+                        "cognito-idp:ForgotPassword",
+                        "cognito-idp:ConfirmForgotPassword",
+                        "cognito-idp:UpdateUserPoolClient"
+                      ],
+                      "Resource": [
+                        "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J",
+                        "arn:aws:cognito-idp:us-east-1:663003476104:userpool/us-east-1_1kLOdae9J/*"
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "textract:StartDocumentTextDetection",
+                        "textract:GetDocumentTextDetection"
+                      ],
+                      "Resource": "*"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "bedrock:InvokeModel"
+                      ],
+                      "Resource": "*"
+                    }
+                  ]
+                }
+              }
+            ],
+            "Path": "/",
+            "RoleName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "lawai-serverless",
+                  "dev",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  "lambdaRole"
+                ]
+              ]
+            }
+          }
+        },
+        "ApiLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+              "S3Key": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z/lawai-serverless.zip"
+            },
+            "Handler": "lambda-direct.handler",
+            "Runtime": "nodejs18.x",
+            "FunctionName": "lawai-serverless-dev-api",
+            "MemorySize": 1024,
+            "Timeout": 30,
+            "Environment": {
+              "Variables": {
+                "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
+                "COGNITO_CLIENT_SECRET": "<REDACTED>",
+                "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+                "S3_BUCKET_NAME": "contractfiles1",
+                "TEXTRACT_ENABLED": "false",
+                "BEDROCK_ENABLED": "false",
+                "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
+                "COGNITO_AUTO_UPDATE_CLIENT": "false",
+                "PORT": "3001"
+              }
+            },
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            }
+          },
+          "DependsOn": [
+            "ApiLogGroup"
+          ]
+        },
+        "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "ApiLambdaFunction"
+            },
+            "CodeSha256": "29HYUouymwbaROlDkeGwl1Hz+5P+dx/eM00fY6k2eTc="
+          }
+        },
+        "ApiGatewayRestApi": {
+          "Type": "AWS::ApiGateway::RestApi",
+          "Properties": {
+            "Name": "dev-lawai-serverless",
+            "EndpointConfiguration": {
+              "Types": [
+                "EDGE"
+              ]
+            },
+            "Policy": ""
+          }
+        },
+        "ApiGatewayResourceProxyVar": {
+          "Type": "AWS::ApiGateway::Resource",
+          "Properties": {
+            "ParentId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "PathPart": "{proxy+}",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodProxyVarOptions": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "OPTIONS",
+            "MethodResponses": [
+              {
+                "StatusCode": "200",
+                "ResponseParameters": {
+                  "method.response.header.Access-Control-Allow-Origin": true,
+                  "method.response.header.Access-Control-Allow-Headers": true,
+                  "method.response.header.Access-Control-Allow-Methods": true
+                },
+                "ResponseModels": {}
+              }
+            ],
+            "RequestParameters": {},
+            "Integration": {
+              "Type": "MOCK",
+              "RequestTemplates": {
+                "application/json": "{statusCode:200}"
+              },
+              "ContentHandling": "CONVERT_TO_TEXT",
+              "IntegrationResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": "'*'",
+                    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                    "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                  },
+                  "ResponseTemplates": {
+                    "application/json": ""
+                  }
+                }
+              ]
+            },
+            "ResourceId": {
+              "Ref": "ApiGatewayResourceProxyVar"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodOptions": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "OPTIONS",
+            "MethodResponses": [
+              {
+                "StatusCode": "200",
+                "ResponseParameters": {
+                  "method.response.header.Access-Control-Allow-Origin": true,
+                  "method.response.header.Access-Control-Allow-Headers": true,
+                  "method.response.header.Access-Control-Allow-Methods": true
+                },
+                "ResponseModels": {}
+              }
+            ],
+            "RequestParameters": {},
+            "Integration": {
+              "Type": "MOCK",
+              "RequestTemplates": {
+                "application/json": "{statusCode:200}"
+              },
+              "ContentHandling": "CONVERT_TO_TEXT",
+              "IntegrationResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": "'*'",
+                    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                    "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                  },
+                  "ResponseTemplates": {
+                    "application/json": ""
+                  }
+                }
+              ]
+            },
+            "ResourceId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodProxyVarAny": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "ANY",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Ref": "ApiGatewayResourceProxyVar"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "ApiLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "ApiLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayMethodAny": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "ANY",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "ApiLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "ApiLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayDeployment1759012687623": {
+          "Type": "AWS::ApiGateway::Deployment",
+          "Properties": {
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "StageName": "dev"
+          },
+          "DependsOn": [
+            "ApiGatewayMethodProxyVarOptions",
+            "ApiGatewayMethodOptions",
+            "ApiGatewayMethodProxyVarAny",
+            "ApiGatewayMethodAny"
+          ]
+        },
+        "ApiLambdaPermissionApiGateway": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "ApiLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "apigateway.amazonaws.com",
+            "SourceArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":execute-api:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  "/*/*"
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "Outputs": {
+        "ServerlessDeploymentBucketName": {
+          "Value": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
+          "Export": {
+            "Name": "sls-lawai-serverless-dev-ServerlessDeploymentBucketName"
+          }
+        },
+        "ApiLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+          },
+          "Export": {
+            "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
+          }
+        },
+        "ServiceEndpoint": {
+          "Description": "URL of the service endpoint",
+          "Value": {
+            "Fn::Join": [
+              "",
+              [
+                "https://",
+                {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                ".execute-api.",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix"
+                },
+                "/dev"
+              ]
+            ]
+          },
+          "Export": {
+            "Name": "sls-lawai-serverless-dev-ServiceEndpoint"
+          }
+        }
+      }
+    }
+  }
+}
