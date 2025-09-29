@@ -50,53 +50,49 @@ function createResponse(statusCode, data, customHeaders = {}) {
 }
 
 // In-memory case storage (persists during Lambda execution)
-let cases = [
-  {
-    id: '1',
-    title: 'Sample Contract Review',
-    description: 'Review of employment contract for ABC Corp',
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-20',
-    status: 'active',
-    priority: 'high',
-    client: 'ABC Corporation',
-    type: 'Contract Review',
-    documents: [
-      { id: 1, name: 'contract.pdf', filename: 'contract.pdf', key: 'contract.pdf', size: '2.1 MB', url: '/documents/contract.pdf' },
-      { id: 2, name: 'addendum.pdf', filename: 'addendum.pdf', key: 'addendum.pdf', size: '0.8 MB', url: '/documents/addendum.pdf' }
-    ]
-  },
-  {
-    id: '2', 
-    title: 'Employment Agreement Analysis',
-    description: 'Analysis of non-compete clauses in employment agreement',
-    createdAt: '2024-01-10',
-    updatedAt: '2024-01-15',
-    status: 'completed',
-    priority: 'medium',
-    client: 'John Doe',
-    type: 'Legal Analysis',
-    documents: [
-      { id: 3, name: 'agreement.pdf', filename: 'agreement.pdf', key: 'agreement.pdf', size: '1.5 MB', url: '/documents/agreement.pdf' }
-    ]
-  },
-  {
-    id: '3',
-    title: 'Lease Agreement Dispute',
-    description: 'Commercial lease dispute resolution',
-    createdAt: '2024-01-20',
-    updatedAt: '2024-01-25',
-    status: 'in-progress',
-    priority: 'high',
-    client: 'XYZ Properties',
-    type: 'Litigation',
-    documents: [
-      { id: 4, name: 'lease.pdf', filename: 'lease.pdf', key: 'lease.pdf', size: '3.2 MB', url: '/documents/lease.pdf' },
-      { id: 5, name: 'notice.pdf', filename: 'notice.pdf', key: 'notice.pdf', size: '0.5 MB', url: '/documents/notice.pdf' },
-      { id: 6, name: 'response.pdf', filename: 'response.pdf', key: 'response.pdf', size: '1.2 MB', url: '/documents/response.pdf' }
-    ]
+let cases = [];
+
+// S3 persistence for cases
+async function loadCasesFromS3() {
+  try {
+    const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+    const s3Client = new S3Client({ region: 'us-east-1' });
+    
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: 'cases/cases.json'
+    });
+    
+    const response = await s3Client.send(command);
+    const casesData = await response.Body.transformToString();
+    return JSON.parse(casesData);
+  } catch (error) {
+    // If file doesn't exist or other error, return empty array
+    console.log('No existing cases file or error loading cases:', error.message);
+    return [];
   }
-];
+}
+
+async function saveCasesToS3(casesArray) {
+  try {
+    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+    const s3Client = new S3Client({ region: 'us-east-1' });
+    
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: 'cases/cases.json',
+      Body: JSON.stringify(casesArray, null, 2),
+      ContentType: 'application/json'
+    });
+    
+    await s3Client.send(command);
+    console.log('Cases saved to S3 successfully');
+    return true;
+  } catch (error) {
+    console.error('Error saving cases to S3:', error);
+    return false;
+  }
+}
 
 // Main Lambda handler
 exports.handler = async (event, context) => {
@@ -522,7 +518,14 @@ exports.handler = async (event, context) => {
     // Cases endpoint with CRUD operations
     if (path === '/cases' || path === '/dev/cases') {
       if (method === 'GET') {
-        // Get all cases from in-memory storage
+        // Get all cases from S3 storage
+        try {
+          cases = await loadCasesFromS3();
+        } catch (error) {
+          console.error('Error loading cases:', error);
+          cases = [];
+        }
+        
         return {
           statusCode: 200,
           headers: {
@@ -549,8 +552,11 @@ exports.handler = async (event, context) => {
           return createResponse(400, { error: 'Invalid JSON in request body' });
         }
         
+        // Load existing cases first
+        cases = await loadCasesFromS3();
+        
         const newCase = {
-          id: String(cases.length + 1),
+          id: String(Date.now()), // Use timestamp for unique ID
           title: requestBody.title || 'New Case',
           description: requestBody.description || '',
           createdAt: new Date().toISOString().split('T')[0],
@@ -563,6 +569,9 @@ exports.handler = async (event, context) => {
         };
         
         cases.push(newCase);
+        
+        // Save to S3
+        await saveCasesToS3(cases);
         
         return createResponse(201, {
           success: true,
@@ -625,9 +634,12 @@ exports.handler = async (event, context) => {
     if (path.match(/\/cases\/\d+\/documents\//) || path.match(/\/dev\/cases\/\d+\/documents\//)) {
       const pathParts = path.split('/');
       const caseId = pathParts[pathParts.indexOf('cases') + 1];
-      const documentName = pathParts[pathParts.length - 1];
+      const documentName = decodeURIComponent(pathParts[pathParts.length - 1]);
       
       if (method === 'DELETE') {
+        // Load cases from S3 first
+        cases = await loadCasesFromS3();
+        
         // Delete document from case
         const caseIndex = cases.findIndex(c => c.id === caseId);
         if (caseIndex === -1) {
@@ -650,6 +662,9 @@ exports.handler = async (event, context) => {
         const removedDocument = cases[caseIndex].documents.splice(documentIndex, 1)[0];
         cases[caseIndex].updatedAt = new Date().toISOString().split('T')[0];
         
+        // Save updated cases to S3
+        await saveCasesToS3(cases);
+        
         return createResponse(200, {
           success: true,
           message: `Document ${documentName} deleted from case ${caseId}`,
@@ -670,6 +685,9 @@ exports.handler = async (event, context) => {
       const caseId = path.split('/').pop();
       
       if (method === 'DELETE') {
+        // Load cases from S3 first
+        cases = await loadCasesFromS3();
+        
         // Find and delete case
         const initialLength = cases.length;
         cases = cases.filter(c => c.id !== caseId);
@@ -682,6 +700,9 @@ exports.handler = async (event, context) => {
           });
         }
         
+        // Save updated cases to S3
+        await saveCasesToS3(cases);
+        
         return createResponse(200, {
           success: true,
           message: `Case ${caseId} deleted successfully`,
@@ -691,6 +712,9 @@ exports.handler = async (event, context) => {
       }
       
       if (method === 'PUT') {
+        // Load cases from S3 first
+        cases = await loadCasesFromS3();
+        
         // Update case
         try {
           requestBody = JSON.parse(rawBody);
@@ -714,6 +738,9 @@ exports.handler = async (event, context) => {
           updatedAt: new Date().toISOString().split('T')[0]
         };
         
+        // Save updated cases to S3
+        await saveCasesToS3(cases);
+        
         return createResponse(200, {
           success: true,
           message: `Case ${caseId} updated successfully`,
@@ -722,6 +749,9 @@ exports.handler = async (event, context) => {
       }
       
       if (method === 'GET') {
+        // Load cases from S3 first
+        cases = await loadCasesFromS3();
+        
         // Get specific case
         const case_ = cases.find(c => c.id === caseId);
         if (!case_) {
@@ -873,6 +903,18 @@ exports.handler = async (event, context) => {
         });
       }
       
+      // Check if the file appears to be a PDF (for preview safety)
+      // Extract actual file extension and check if it's really a PDF
+      const fileExtension = key.split('.').pop().toLowerCase();
+      if (fileExtension !== 'pdf' || key.toLowerCase().includes('.docx') || key.toLowerCase().includes('.doc')) {
+        return createResponse(400, {
+          error: 'Only PDF files can be previewed',
+          fileType: fileExtension,
+          fileName: key.split('/').pop(),
+          suggestion: 'Use download instead of preview for non-PDF files'
+        });
+      }
+      
       // Check if this is a mock document (simple filename without timestamp)
       const isMockDocument = !key.includes('-') || key.length < 20;
       
@@ -914,6 +956,94 @@ exports.handler = async (event, context) => {
         
         return createResponse(500, {
           error: 'Failed to generate presigned URL',
+          details: error.message
+        });
+      }
+    }
+
+    // S3 Download endpoint - proxy download through Lambda
+    if (path === '/s3/download' || path === '/dev/s3/download') {
+      if (method !== 'GET') {
+        return createResponse(405, {
+          error: 'Method not allowed. Use GET for downloads.'
+        });
+      }
+
+      // Authentication required - check both header and query parameter
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const queryToken = event.queryStringParameters?.t;
+      
+      let token;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      } else if (queryToken) {
+        token = queryToken;
+      } else {
+        return createResponse(401, {
+          error: 'Authorization required: provide Bearer token in header or t parameter in query'
+        });
+      }
+      try {
+        const getUserCommand = new (require('@aws-sdk/client-cognito-identity-provider').GetUserCommand)({
+          AccessToken: token
+        });
+        await cognitoClient.send(getUserCommand);
+      } catch (error) {
+        return createResponse(401, {
+          error: 'Invalid or expired token'
+        });
+      }
+
+      const key = event.queryStringParameters?.key;
+      if (!key) {
+        return createResponse(400, {
+          error: 'key parameter is required for download'
+        });
+      }
+
+      try {
+        const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+        const s3Client = new S3Client({ region: 'us-east-1' });
+
+        const command = new GetObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: key
+        });
+
+        const s3Response = await s3Client.send(command);
+        
+        // Stream the file content as response
+        const chunks = [];
+        for await (const chunk of s3Response.Body) {
+          chunks.push(chunk);
+        }
+        const buffer = Buffer.concat(chunks);
+
+        // Determine content type - force PDF if the key suggests it's a PDF
+        const contentType = key.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 
+                           (s3Response.ContentType || 'application/octet-stream');
+
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': s3Response.ContentLength?.toString() || buffer.length.toString(),
+            'Content-Disposition': contentType === 'application/pdf' ? 'inline; filename="document.pdf"' : 'attachment',
+            'Cache-Control': 'public, max-age=3600',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'X-Frame-Options': 'SAMEORIGIN',
+            'Cross-Origin-Resource-Policy': 'same-site'
+          },
+          body: buffer.toString('base64'),
+          isBase64Encoded: true
+        };
+
+      } catch (error) {
+        console.error('S3 download error:', error);
+        return createResponse(500, {
+          error: 'Failed to download file',
           details: error.message
         });
       }
@@ -975,18 +1105,36 @@ exports.handler = async (event, context) => {
       
       // Handle direct file upload with multipart form data parsing
       try {
+        // Check content length to prevent oversized uploads (limit to 10MB)
+        const contentLength = parseInt(event.headers['content-length'] || event.headers['Content-Length'] || '0');
+        if (contentLength > 10 * 1024 * 1024) {
+          return createResponse(413, {
+            error: 'File too large. Maximum file size is 10MB.',
+            fileSize: `${(contentLength / (1024 * 1024)).toFixed(1)}MB`,
+            maxSize: '10MB'
+          });
+        }
+
         const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
         const s3Client = new S3Client({ region: 'us-east-1' });
         
         let fileName = 'uploaded-file';
         let fileBuffer;
+        const contentDisposition = event.headers['content-disposition'] || event.headers['Content-Disposition'];
         
         // Parse multipart form data
         let bodyBuffer;
-        if (event.isBase64Encoded) {
-          bodyBuffer = Buffer.from(rawBody, 'base64');
-        } else {
-          bodyBuffer = Buffer.from(rawBody);
+        try {
+          if (event.isBase64Encoded) {
+            bodyBuffer = Buffer.from(rawBody, 'base64');
+          } else {
+            bodyBuffer = Buffer.from(rawBody);
+          }
+        } catch (error) {
+          return createResponse(400, {
+            error: 'Invalid request body encoding',
+            details: error.message
+          });
         }
         
         // Simple multipart parser for file uploads
@@ -1043,14 +1191,31 @@ exports.handler = async (event, context) => {
         let fileContentType = 'application/octet-stream';
         
         if (contentType.includes('multipart/form-data')) {
-          const parsed = parseMultipartFile(bodyBuffer);
-          fileName = parsed.fileName;
-          fileBuffer = parsed.content;
+          try {
+            const parsed = parseMultipartFile(bodyBuffer);
+            fileName = parsed.fileName;
+            fileBuffer = parsed.content;
+          } catch (parseError) {
+            return createResponse(400, {
+              error: 'Failed to parse multipart form data',
+              details: parseError.message,
+              contentType: contentType
+            });
+          }
+          
+          // Validate file type - only allow PDFs (and reject files with multiple extensions)
+          const fileExtension = fileName.split('.').pop().toLowerCase();
+          if (fileExtension !== 'pdf' || fileName.toLowerCase().includes('.docx') || fileName.toLowerCase().includes('.doc')) {
+            return createResponse(400, {
+              error: 'Only PDF files are allowed. DOCX, DOC, and other formats are not supported.',
+              fileName: fileName,
+              detectedType: fileExtension,
+              allowedTypes: ['pdf']
+            });
+          }
           
           // Determine content type based on file extension
-          if (fileName.toLowerCase().endsWith('.pdf')) {
-            fileContentType = 'application/pdf';
-          }
+          fileContentType = 'application/pdf';
         } else {
           // Direct file upload (not multipart)
           fileBuffer = bodyBuffer;
@@ -1088,6 +1253,9 @@ exports.handler = async (event, context) => {
         // If caseId is provided, add document to the case
         let updatedCase = null;
         if (caseId) {
+          // Load cases from S3 first
+          cases = await loadCasesFromS3();
+          
           const caseIndex = cases.findIndex(c => c.id === caseId);
           if (caseIndex !== -1) {
             const newDocument = {
@@ -1103,6 +1271,9 @@ exports.handler = async (event, context) => {
             cases[caseIndex].documents.push(newDocument);
             cases[caseIndex].updatedAt = new Date().toISOString().split('T')[0];
             updatedCase = cases[caseIndex];
+            
+            // Save updated cases to S3
+            await saveCasesToS3(cases);
           }
         }
         
@@ -1123,6 +1294,149 @@ exports.handler = async (event, context) => {
         
         return createResponse(500, {
           error: 'Failed to upload file',
+          details: error.message
+        });
+      }
+    }
+
+    // Contract Review endpoint
+    if (path === '/contracts/review' || path === '/dev/contracts/review') {
+      if (method !== 'POST') {
+        return createResponse(405, {
+          error: 'Method not allowed. Use POST for contract review.'
+        });
+      }
+
+      // Authentication required
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return createResponse(401, {
+          error: 'Authorization header with Bearer token required'
+        });
+      }
+
+      const token = authHeader.substring(7);
+      try {
+        const getUserCommand = new (require('@aws-sdk/client-cognito-identity-provider').GetUserCommand)({
+          AccessToken: token
+        });
+        await cognitoClient.send(getUserCommand);
+      } catch (error) {
+        return createResponse(401, {
+          error: 'Invalid or expired token'
+        });
+      }
+
+      try {
+        const parsedBody = rawBody ? JSON.parse(rawBody) : {};
+        const { content } = parsedBody;
+
+        if (!content) {
+          return createResponse(400, {
+            error: 'Content is required for contract review'
+          });
+        }
+
+        // Mock contract review response
+        // In a real implementation, this would integrate with AI services like Bedrock/OpenAI
+        const mockReview = {
+          summary: "This appears to be a standard employment contract with several key provisions.",
+          issues: [
+            {
+              type: "warning",
+              section: "Termination Clause",
+              description: "The termination clause may be too broad and could limit employee rights.",
+              suggestion: "Consider adding specific termination conditions and notice periods."
+            },
+            {
+              type: "info", 
+              section: "Compensation",
+              description: "Salary and benefits structure is clearly defined.",
+              suggestion: "No changes needed in this section."
+            }
+          ],
+          overallRisk: "Medium",
+          recommendations: [
+            "Review termination clause with employment law specialist",
+            "Consider adding intellectual property protection clauses",
+            "Ensure compliance with local labor laws"
+          ]
+        };
+
+        return createResponse(200, {
+          success: true,
+          review: mockReview
+        });
+
+      } catch (error) {
+        console.error('Contract review error:', error);
+        return createResponse(500, {
+          error: 'Failed to review contract',
+          details: error.message
+        });
+      }
+    }
+
+    // Contract Fix endpoint
+    if (path === '/contracts/fix' || path === '/dev/contracts/fix') {
+      if (method !== 'POST') {
+        return createResponse(405, {
+          error: 'Method not allowed. Use POST for contract fix.'
+        });
+      }
+
+      // Authentication required
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return createResponse(401, {
+          error: 'Authorization header with Bearer token required'
+        });
+      }
+
+      const token = authHeader.substring(7);
+      try {
+        const getUserCommand = new (require('@aws-sdk/client-cognito-identity-provider').GetUserCommand)({
+          AccessToken: token
+        });
+        await cognitoClient.send(getUserCommand);
+      } catch (error) {
+        return createResponse(401, {
+          error: 'Invalid or expired token'
+        });
+      }
+
+      try {
+        const parsedBody = rawBody ? JSON.parse(rawBody) : {};
+        const { content, issue } = parsedBody;
+
+        if (!content || !issue) {
+          return createResponse(400, {
+            error: 'Content and issue description are required for contract fix'
+          });
+        }
+
+        // Mock contract fix response
+        // In a real implementation, this would integrate with AI services
+        const mockFix = {
+          originalSection: content.substring(0, 200) + "...",
+          revisedSection: "REVISED: " + content.substring(0, 150) + "... [with suggested improvements]",
+          changes: [
+            "Added specific termination notice period of 30 days",
+            "Clarified grounds for termination",
+            "Added employee protection clauses"
+          ],
+          explanation: "The revised section addresses the identified issues by providing clearer terms and better protection for both parties."
+        };
+
+        return createResponse(200, {
+          success: true,
+          fix: mockFix
+        });
+
+      } catch (error) {
+        console.error('Contract fix error:', error);
+        return createResponse(500, {
+          error: 'Failed to fix contract',
           details: error.message
         });
       }
@@ -1172,8 +1486,11 @@ exports.handler = async (event, context) => {
         'POST /cases/{id}/documents',
         'GET /documents/{filename}',
         'GET /s3/presign-get',
+        'GET /s3/download',
         'DELETE /s3/object',
-        'POST /s3/upload'
+        'POST /s3/upload',
+        'POST /contracts/review',
+        'POST /contracts/fix'
       ]
     });
     
