@@ -26,9 +26,11 @@ function PDFUpload({ caseId, onUploaded }) {
       const token = sessionStorage.getItem('accessToken');
       const formData = new FormData();
       formData.append('file', file, file.name);
-      if (caseId) formData.append('caseId', caseId);
+      
+      // Send caseId as query parameter instead of form data
+      const uploadUrl = caseId ? `${API_BASE}/s3/upload?caseId=${encodeURIComponent(caseId)}` : `${API_BASE}/s3/upload`;
 
-      const res = await fetch(`${API_BASE}/s3/upload`, {
+      const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})

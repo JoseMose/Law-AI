@@ -945,12 +945,53 @@ exports.handler = async (event, context) => {
         
         await s3Client.send(command);
         
+                // Get caseId from query parameters
+        let caseId = null;
+        let originalFileName = fileName;
+        
+        if (event.queryStringParameters && event.queryStringParameters.caseId) {
+          caseId = event.queryStringParameters.caseId;
+        }
+        
+        // Extract filename from Content-Disposition header if available
+        if (contentDisposition && contentDisposition.includes('filename=')) {
+          const match = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (match) {
+            originalFileName = match[1];
+          }
+        }
+        
+        // If caseId is provided, add document to the case
+        let updatedCase = null;
+        if (caseId) {
+          const caseIndex = cases.findIndex(c => c.id === caseId);
+          if (caseIndex !== -1) {
+            const newDocument = {
+              id: timestamp,
+              name: originalFileName,
+              filename: originalFileName,
+              key: uniqueFileName, // S3 key
+              size: `${(fileBuffer.length / (1024 * 1024)).toFixed(1)} MB`,
+              url: `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${uniqueFileName}`,
+              uploadDate: new Date().toISOString().split('T')[0]
+            };
+            
+            cases[caseIndex].documents.push(newDocument);
+            cases[caseIndex].updatedAt = new Date().toISOString().split('T')[0];
+            updatedCase = cases[caseIndex];
+          }
+        }
+        
         return createResponse(200, {
           success: true,
           fileName: uniqueFileName,
+          originalFileName: originalFileName,
           bucket: process.env.S3_BUCKET_NAME,
           fileUrl: `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${uniqueFileName}`,
-          size: fileBuffer.length
+          size: fileBuffer.length,
+          caseId: caseId,
+          addedToCase: !!updatedCase,
+          updatedCase: updatedCase
         });
         
       } catch (error) {
