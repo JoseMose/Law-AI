@@ -858,6 +858,52 @@ exports.handler = async (event, context) => {
       });
     }
 
+    // S3 Presigned GET URL endpoint
+    if (path === '/s3/presign-get' || path === '/dev/s3/presign-get') {
+      if (method !== 'GET') {
+        return createResponse(405, {
+          error: 'Method not allowed. Use GET for presigned URL generation.'
+        });
+      }
+      
+      const key = event.queryStringParameters?.key;
+      if (!key) {
+        return createResponse(400, {
+          error: 'key parameter is required for presigned URL generation'
+        });
+      }
+      
+      try {
+        const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+        const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+        
+        const s3Client = new S3Client({ region: 'us-east-1' });
+        
+        const command = new GetObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: key
+        });
+        
+        const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
+        
+        return createResponse(200, {
+          success: true,
+          url: presignedUrl,
+          key: key,
+          bucket: process.env.S3_BUCKET_NAME,
+          expiresIn: 3600
+        });
+        
+      } catch (error) {
+        console.error('S3 presigned GET URL error:', error);
+        
+        return createResponse(500, {
+          error: 'Failed to generate presigned URL',
+          details: error.message
+        });
+      }
+    }
+
     // S3 Upload endpoint
     if (path === '/s3/upload' || path === '/dev/s3/upload') {
       if (method !== 'POST') {
@@ -1041,9 +1087,14 @@ exports.handler = async (event, context) => {
         'GET /auth/verify',
         'GET /verifyToken',
         'GET /cases',
+        'GET /cases/{id}',
         'DELETE /cases/{id}',
         'PUT /cases/{id}',
+        'DELETE /cases/{id}/documents/{name}',
+        'POST /cases/{id}/documents',
         'GET /documents/{filename}',
+        'GET /s3/presign-get',
+        'DELETE /s3/object',
         'POST /s3/upload'
       ]
     });
