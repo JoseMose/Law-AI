@@ -143,7 +143,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
-          "S3Key": "serverless/lawai-serverless/dev/1759115621204-2025-09-29T03:13:41.204Z/lawai-serverless.zip"
+          "S3Key": "serverless/lawai-serverless/dev/1759117426748-2025-09-29T03:43:46.748Z/lawai-serverless.zip"
         },
         "Handler": "lambda-auth.handler",
         "Runtime": "nodejs18.x",
@@ -174,14 +174,14 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas": {
+    "ApiLambdaVersion4IbGzqxDvmJY8RyL140Bh82nKBe9UsN2MFOUSSLQOg": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "Gk9BCMhdBfVpWb4u9jvc9w6aoQtoBGr5ksZQB4xlAtc="
+        "CodeSha256": "JEEQLcvj8+XoW+ViM1PB4ofhP60Ge/7aCV4Kz7sf6s4="
       }
     },
     "ApiGatewayRestApi": {
@@ -399,7 +399,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1759115614024": {
+    "ApiGatewayDeployment1759117419505": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -462,7 +462,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas"
+        "Ref": "ApiLambdaVersion4IbGzqxDvmJY8RyL140Bh82nKBe9UsN2MFOUSSLQOg"
       },
       "Export": {
         "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"

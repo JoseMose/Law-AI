@@ -973,35 +973,98 @@ exports.handler = async (event, context) => {
         }
       }
       
-      // Handle direct file upload
+      // Handle direct file upload with multipart form data parsing
       try {
         const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
         const s3Client = new S3Client({ region: 'us-east-1' });
         
         let fileName = 'uploaded-file';
-        const contentDisposition = event.headers['content-disposition'] || event.headers['Content-Disposition'];
-        if (contentDisposition && contentDisposition.includes('filename=')) {
-          const match = contentDisposition.match(/filename="?([^"]+)"?/);
-          if (match) {
-            fileName = match[1];
+        let fileBuffer;
+        
+        // Parse multipart form data
+        let bodyBuffer;
+        if (event.isBase64Encoded) {
+          bodyBuffer = Buffer.from(rawBody, 'base64');
+        } else {
+          bodyBuffer = Buffer.from(rawBody);
+        }
+        
+        // Simple multipart parser for file uploads
+        function parseMultipartFile(buffer) {
+          const boundary = contentType.split('boundary=')[1];
+          if (!boundary) {
+            throw new Error('No boundary found in multipart data');
           }
+          
+          const boundaryBuffer = Buffer.from('--' + boundary);
+          const parts = [];
+          let start = 0;
+          
+          // Split by boundary
+          while (true) {
+            const boundaryIndex = buffer.indexOf(boundaryBuffer, start);
+            if (boundaryIndex === -1) break;
+            
+            if (start > 0) {
+              parts.push(buffer.slice(start, boundaryIndex));
+            }
+            start = boundaryIndex + boundaryBuffer.length;
+          }
+          
+          // Find the file part
+          for (const part of parts) {
+            const partStr = part.toString();
+            const headerEndIndex = partStr.indexOf('\r\n\r\n');
+            if (headerEndIndex === -1) continue;
+            
+            const headers = partStr.substring(0, headerEndIndex);
+            if (headers.includes('Content-Disposition') && headers.includes('filename=')) {
+              // Extract filename
+              const filenameMatch = headers.match(/filename="?([^";\r\n]+)"?/);
+              if (filenameMatch) {
+                fileName = filenameMatch[1];
+              }
+              
+              // Extract file content (skip headers + \r\n\r\n, and trim final \r\n)
+              const fileContent = part.slice(headerEndIndex + 4);
+              // Remove trailing \r\n if present
+              const endTrim = fileContent.length >= 2 && 
+                            fileContent[fileContent.length - 2] === 13 && 
+                            fileContent[fileContent.length - 1] === 10 ? 2 : 0;
+              return {
+                fileName,
+                content: fileContent.slice(0, fileContent.length - endTrim)
+              };
+            }
+          }
+          throw new Error('No file found in multipart data');
+        }
+        
+        let fileContentType = 'application/octet-stream';
+        
+        if (contentType.includes('multipart/form-data')) {
+          const parsed = parseMultipartFile(bodyBuffer);
+          fileName = parsed.fileName;
+          fileBuffer = parsed.content;
+          
+          // Determine content type based on file extension
+          if (fileName.toLowerCase().endsWith('.pdf')) {
+            fileContentType = 'application/pdf';
+          }
+        } else {
+          // Direct file upload (not multipart)
+          fileBuffer = bodyBuffer;
+          fileContentType = contentType || 'application/octet-stream';
         }
         
         const timestamp = Date.now();
         const uniqueFileName = `${timestamp}-${fileName}`;
         
-        let fileBuffer;
-        if (event.isBase64Encoded) {
-          fileBuffer = Buffer.from(rawBody, 'base64');
-        } else {
-          fileBuffer = Buffer.from(rawBody);
-        }
-        
         const command = new PutObjectCommand({
           Bucket: process.env.S3_BUCKET_NAME,
           Key: uniqueFileName,
           Body: fileBuffer,
-          ContentType: contentType || 'application/octet-stream'
+          ContentType: fileContentType
         });
         
         await s3Client.send(command);

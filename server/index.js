@@ -702,6 +702,11 @@ app.get('/s3/download', authenticateToken, async (req, res) => {
     if (s3res.ContentType) res.setHeader('Content-Type', s3res.ContentType);
     if (s3res.ContentLength) res.setHeader('Content-Length', s3res.ContentLength);
     if (s3res.ETag) res.setHeader('ETag', s3res.ETag);
+    
+    // Set Content-Disposition to inline for PDFs to enable browser preview
+    if (s3res.ContentType === 'application/pdf') {
+      res.setHeader('Content-Disposition', 'inline');
+    }
 
     // s3res.Body is a stream
     s3res.Body.pipe(res);
