@@ -32,6 +32,57 @@ exports.handler = async (event, context) => {
       };
     }
     
+    // Authentication endpoints
+    if (path.includes('/auth/')) {
+      // Parse request body for POST requests
+      let requestBody = {};
+      if (event.body) {
+        try {
+          requestBody = JSON.parse(event.body);
+        } catch (e) {
+          requestBody = {};
+        }
+      }
+      
+      if (path === '/auth/signin' || path === '/dev/auth/signin') {
+        return {
+          statusCode: 501,
+          headers,
+          body: JSON.stringify({
+            error: 'Authentication not yet fully implemented',
+            message: 'Cognito authentication is being integrated',
+            received: requestBody,
+            hint: 'This endpoint will connect to AWS Cognito for user authentication'
+          })
+        };
+      }
+      
+      if (path === '/auth/signup' || path === '/dev/auth/signup') {
+        return {
+          statusCode: 501,
+          headers,
+          body: JSON.stringify({
+            error: 'Registration not yet fully implemented',
+            message: 'Cognito registration is being integrated',
+            received: requestBody,
+            hint: 'This endpoint will connect to AWS Cognito for user registration'
+          })
+        };
+      }
+      
+      // Other auth endpoints
+      return {
+        statusCode: 501,
+        headers,
+        body: JSON.stringify({
+          error: 'Authentication endpoint not yet implemented',
+          path: path,
+          method: method,
+          message: 'Auth system is being migrated to serverless architecture'
+        })
+      };
+    }
+    
     // Root endpoint
     if (path === '/' || path === '/dev' || path === '/dev/') {
       return {
@@ -40,7 +91,9 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           message: 'Law-AI API is running on AWS Lambda',
           timestamp: new Date().toISOString(),
-          endpoints: ['/health', '/auth/*', '/upload', '/cases/*']
+          status: 'Partial Implementation',
+          available_endpoints: ['/health', '/auth/signin', '/auth/signup'],
+          note: 'Authentication endpoints return 501 (Not Implemented) while being developed'
         })
       };
     }

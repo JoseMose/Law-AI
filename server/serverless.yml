@@ -58,7 +58,7 @@ provider:
 
 functions:
   api:
-    handler: lambda-direct.handler
+    handler: lambda-auth.handler
     timeout: 30
     events:
       - http:

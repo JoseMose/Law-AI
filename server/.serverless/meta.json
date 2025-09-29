@@ -221,9 +221,9 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
-                  "S3Key": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z/lawai-serverless.zip"
+                  "S3Key": "serverless/lawai-serverless/dev/1759115621204-2025-09-29T03:13:41.204Z/lawai-serverless.zip"
                 },
-                "Handler": "lambda-direct.handler",
+                "Handler": "lambda-auth.handler",
                 "Runtime": "nodejs18.x",
                 "FunctionName": "lawai-serverless-dev-api",
                 "MemorySize": 1024,
@@ -252,14 +252,14 @@
                 "ApiLogGroup"
               ]
             },
-            "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg": {
+            "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ApiLambdaFunction"
                 },
-                "CodeSha256": "29HYUouymwbaROlDkeGwl1Hz+5P+dx/eM00fY6k2eTc="
+                "CodeSha256": "Gk9BCMhdBfVpWb4u9jvc9w6aoQtoBGr5ksZQB4xlAtc="
               }
             },
             "ApiGatewayRestApi": {
@@ -477,7 +477,7 @@
                 "ApiLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1759012687623": {
+            "ApiGatewayDeployment1759115614024": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -540,7 +540,7 @@
             "ApiLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+                "Ref": "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas"
               },
               "Export": {
                 "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
@@ -578,7 +578,7 @@
       },
       "functions": {
         "api": {
-          "handler": "lambda-direct.handler",
+          "handler": "lambda-auth.handler",
           "timeout": 30,
           "events": [
             {
@@ -633,7 +633,7 @@
           "memory": 1024,
           "runtime": "nodejs18.x",
           "vpc": {},
-          "versionLogicalId": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+          "versionLogicalId": "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas"
         }
       },
       "plugins": [
@@ -667,7 +667,7 @@
         "artifactsS3KeyDirname": "serverless/lawai-serverless/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
         "artifact": "/Users/josephesfandiari/Lawyer App/law-ai/server/.serverless/lawai-serverless.zip",
-        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z"
+        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759115621204-2025-09-29T03:13:41.204Z"
       }
     },
     "provider": {
@@ -886,9 +886,9 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
-                "S3Key": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z/lawai-serverless.zip"
+                "S3Key": "serverless/lawai-serverless/dev/1759115621204-2025-09-29T03:13:41.204Z/lawai-serverless.zip"
               },
-              "Handler": "lambda-direct.handler",
+              "Handler": "lambda-auth.handler",
               "Runtime": "nodejs18.x",
               "FunctionName": "lawai-serverless-dev-api",
               "MemorySize": 1024,
@@ -917,14 +917,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg": {
+          "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "29HYUouymwbaROlDkeGwl1Hz+5P+dx/eM00fY6k2eTc="
+              "CodeSha256": "Gk9BCMhdBfVpWb4u9jvc9w6aoQtoBGr5ksZQB4xlAtc="
             }
           },
           "ApiGatewayRestApi": {
@@ -1142,7 +1142,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1759012687623": {
+          "ApiGatewayDeployment1759115614024": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1205,7 +1205,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+              "Ref": "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas"
             },
             "Export": {
               "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
@@ -1250,7 +1250,7 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "serviceRawFile": "service: lawai-serverless\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: us-east-1\n  stage: ${opt:stage, 'dev'}\n  \n  environment:\n    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}\n    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}\n    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}\n    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}\n    TEXTRACT_ENABLED: ${env:TEXTRACT_ENABLED, 'false'}\n    BEDROCK_ENABLED: ${env:BEDROCK_ENABLED, 'false'}\n    BEDROCK_MODEL: ${env:BEDROCK_MODEL, 'anthropic.claude-3-sonnet-20240229-v1:0'}\n    COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT, 'false'}\n  \n  iamRoleStatements:\n    - Effect: Allow\n      Action:\n        - s3:GetObject\n        - s3:PutObject\n        - s3:DeleteObject\n        - s3:GetObjectVersion\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}/*\"\n    - Effect: Allow\n      Action:\n        - s3:ListBucket\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}\"\n    - Effect: Allow\n      Action:\n        - cognito-idp:AdminInitiateAuth\n        - cognito-idp:AdminGetUser\n        - cognito-idp:AdminRespondToAuthChallenge\n        - cognito-idp:InitiateAuth\n        - cognito-idp:RespondToAuthChallenge\n        - cognito-idp:GetUser\n        - cognito-idp:SignUp\n        - cognito-idp:ConfirmSignUp\n        - cognito-idp:ForgotPassword\n        - cognito-idp:ConfirmForgotPassword\n        - cognito-idp:UpdateUserPoolClient\n      Resource:\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}\"\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}/*\"\n    - Effect: Allow\n      Action:\n        - textract:StartDocumentTextDetection\n        - textract:GetDocumentTextDetection\n      Resource: \"*\"\n    - Effect: Allow\n      Action:\n        - bedrock:InvokeModel\n      Resource: \"*\"\n\nfunctions:\n  api:\n    handler: lambda-direct.handler\n    timeout: 30\n    events:\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n      - http:\n          path: /\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n\nplugins:\n  - serverless-dotenv-plugin\n\ncustom:\n  dotenv:\n    path: .env\n    exclude:\n      - AWS_REGION\n      - AWS_ACCESS_KEY_ID\n      - AWS_SECRET_ACCESS_KEY\n\npackage:\n  exclude:\n    - node_modules/**\n    - .git/**\n    - .env\n    - README.md\n    - .gitignore\n  include:\n    - node_modules/**\n    - lambda.js\n    - index.js\n    - data/**\n    - package.json",
+    "serviceRawFile": "service: lawai-serverless\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: us-east-1\n  stage: ${opt:stage, 'dev'}\n  \n  environment:\n    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}\n    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}\n    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}\n    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}\n    TEXTRACT_ENABLED: ${env:TEXTRACT_ENABLED, 'false'}\n    BEDROCK_ENABLED: ${env:BEDROCK_ENABLED, 'false'}\n    BEDROCK_MODEL: ${env:BEDROCK_MODEL, 'anthropic.claude-3-sonnet-20240229-v1:0'}\n    COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT, 'false'}\n  \n  iamRoleStatements:\n    - Effect: Allow\n      Action:\n        - s3:GetObject\n        - s3:PutObject\n        - s3:DeleteObject\n        - s3:GetObjectVersion\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}/*\"\n    - Effect: Allow\n      Action:\n        - s3:ListBucket\n      Resource:\n        - \"arn:aws:s3:::${env:S3_BUCKET_NAME}\"\n    - Effect: Allow\n      Action:\n        - cognito-idp:AdminInitiateAuth\n        - cognito-idp:AdminGetUser\n        - cognito-idp:AdminRespondToAuthChallenge\n        - cognito-idp:InitiateAuth\n        - cognito-idp:RespondToAuthChallenge\n        - cognito-idp:GetUser\n        - cognito-idp:SignUp\n        - cognito-idp:ConfirmSignUp\n        - cognito-idp:ForgotPassword\n        - cognito-idp:ConfirmForgotPassword\n        - cognito-idp:UpdateUserPoolClient\n      Resource:\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}\"\n        - \"arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/${env:COGNITO_USER_POOL_ID}/*\"\n    - Effect: Allow\n      Action:\n        - textract:StartDocumentTextDetection\n        - textract:GetDocumentTextDetection\n      Resource: \"*\"\n    - Effect: Allow\n      Action:\n        - bedrock:InvokeModel\n      Resource: \"*\"\n\nfunctions:\n  api:\n    handler: lambda-auth.handler\n    timeout: 30\n    events:\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n      - http:\n          path: /\n          method: ANY\n          cors:\n            origin: '*'\n            headers:\n              - Content-Type\n              - X-Amz-Date\n              - Authorization\n              - X-Api-Key\n              - X-Amz-Security-Token\n              - X-Amz-User-Agent\n            allowCredentials: false\n\nplugins:\n  - serverless-dotenv-plugin\n\ncustom:\n  dotenv:\n    path: .env\n    exclude:\n      - AWS_REGION\n      - AWS_ACCESS_KEY_ID\n      - AWS_SECRET_ACCESS_KEY\n\npackage:\n  exclude:\n    - node_modules/**\n    - .git/**\n    - .env\n    - README.md\n    - .gitignore\n  include:\n    - node_modules/**\n    - lambda.js\n    - index.js\n    - data/**\n    - package.json",
     "command": [
       "deploy"
     ],
@@ -1263,12 +1263,12 @@
     "serviceProviderAwsCfStackName": "lawai-serverless-dev",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:663003476104:stack/lawai-serverless-dev/7810c7a0-9bef-11f0-bf40-0e124f123293",
     "serviceProviderAwsCfStackCreated": "2025-09-27T22:15:26.386Z",
-    "serviceProviderAwsCfStackUpdated": "2025-09-27T22:35:52.087Z",
+    "serviceProviderAwsCfStackUpdated": "2025-09-29T03:09:23.803Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "ApiLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:us-east-1:663003476104:function:lawai-serverless-dev-api:8",
+        "OutputValue": "arn:aws:lambda:us-east-1:663003476104:function:lawai-serverless-dev-api:36",
         "Description": "Current Lambda function version",
         "ExportName": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
       },
@@ -1429,9 +1429,9 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
-              "S3Key": "serverless/lawai-serverless/dev/1759012693275-2025-09-27T22:38:13.275Z/lawai-serverless.zip"
+              "S3Key": "serverless/lawai-serverless/dev/1759115621204-2025-09-29T03:13:41.204Z/lawai-serverless.zip"
             },
-            "Handler": "lambda-direct.handler",
+            "Handler": "lambda-auth.handler",
             "Runtime": "nodejs18.x",
             "FunctionName": "lawai-serverless-dev-api",
             "MemorySize": 1024,
@@ -1460,14 +1460,14 @@
             "ApiLogGroup"
           ]
         },
-        "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg": {
+        "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "ApiLambdaFunction"
             },
-            "CodeSha256": "29HYUouymwbaROlDkeGwl1Hz+5P+dx/eM00fY6k2eTc="
+            "CodeSha256": "Gk9BCMhdBfVpWb4u9jvc9w6aoQtoBGr5ksZQB4xlAtc="
           }
         },
         "ApiGatewayRestApi": {
@@ -1685,7 +1685,7 @@
             "ApiLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1759012687623": {
+        "ApiGatewayDeployment1759115614024": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -1748,7 +1748,7 @@
         "ApiLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "ApiLambdaVersionhQhRY3uXJRVxHLhYVZ1x4lq6pENppQozvjstd1sLqKg"
+            "Ref": "ApiLambdaVersionRvk5ai6DJGhzOoCSrOVjplvInyzFcM8tr3KuGx4zpas"
           },
           "Export": {
             "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"

@@ -15,8 +15,38 @@ export default function CaseView({ caseObj, onDeleted }) {
   }, [caseObj]);
 
   const refresh = async () => {
-    const res = await fetch(`/cases/${cs.id}`, { headers: { 'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}` } });
-    if (res.ok) setCs(await res.json());
+    console.log('Starting refresh for case:', cs.id, 'API_BASE:', API_BASE);
+    const token = sessionStorage.getItem('accessToken');
+    console.log('Using token:', token ? `${token.substring(0, 10)}...` : 'null/undefined');
+    try {
+      const url = `${API_BASE}/cases/${cs.id}`;
+      console.log('Fetching refresh URL:', url);
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      console.log('Refresh response status:', res.status, 'ok:', res.ok);
+      if (res.ok) {
+        console.log('Reading response text...');
+        const text = await res.text();
+        console.log('Response text length:', text.length, 'First 100 chars:', text.substring(0, 100));
+        if (text.trim()) {
+          try {
+            console.log('Attempting to parse as JSON...');
+            const data = JSON.parse(text);
+            console.log('JSON parsing successful, data:', data);
+            setCs(data.case || data); // Extract case from wrapper or use data directly
+          } catch (parseError) {
+            console.error('Failed to parse refresh response as JSON:', parseError);
+            console.error('Full response text:', text);
+            console.error('Response headers:', [...res.headers.entries()]);
+          }
+        } else {
+          console.warn('Empty response from refresh endpoint');
+        }
+      } else {
+        console.warn('Failed to refresh case data:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Error refreshing case data:', error);
+    }
   };
 
   const handleDownload = async (doc) => {
@@ -64,15 +94,14 @@ export default function CaseView({ caseObj, onDeleted }) {
   };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm(`Delete document '${doc.filename}'? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete document '${doc.name}'? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`${API_BASE}/s3/object`, {
+      const res = await fetch(`${API_BASE}/cases/${cs.id}/documents/${encodeURIComponent(doc.name)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({ key: doc.key, caseId: cs.id })
+        }
       });
 
       // Treat 404 (object already missing) as success (idempotent delete)
@@ -81,12 +110,34 @@ export default function CaseView({ caseObj, onDeleted }) {
           // option: show a small notice that metadata was cleaned up
           console.info('Delete returned 404 (object not found) — metadata will be cleaned up if present');
         }
-        await refresh();
+        console.log('Delete successful, calling refresh...', { status: res.status, ok: res.ok });
+        try {
+          await refresh();
+          console.log('Refresh completed successfully');
+        } catch (refreshError) {
+          console.error('Error during refresh after delete:', refreshError);
+          throw refreshError;
+        }
         return;
       }
 
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Delete failed (${res.status})`);
+      let errorMessage = `Delete failed (${res.status})`;
+      try {
+        // Clone the response so we can try both json() and text()
+        const responseClone = res.clone();
+        try {
+          const err = await res.json();
+          errorMessage = err.error || errorMessage;
+        } catch (jsonError) {
+          console.warn('Failed to parse error response as JSON:', jsonError);
+          const text = await responseClone.text();
+          console.warn('Raw error response:', text);
+          errorMessage = text || errorMessage;
+        }
+      } catch (error) {
+        console.warn('Failed to read error response:', error);
+      }
+      throw new Error(errorMessage);
     } catch (e) {
       console.error('Delete error:', e);
       alert('Failed to delete: ' + (e.message || e));
