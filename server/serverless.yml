@@ -6,6 +6,12 @@ provider:
   region: us-east-1
   stage: ${opt:stage, 'dev'}
   
+  apiGateway:
+    binaryMediaTypes:
+      - 'application/pdf'
+      - 'application/octet-stream'
+      - '*/*'
+  
   environment:
     COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
     COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}

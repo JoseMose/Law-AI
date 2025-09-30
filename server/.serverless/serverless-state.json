@@ -9,6 +9,13 @@
       "runtime": "nodejs18.x",
       "region": "us-east-1",
       "stage": "dev",
+      "apiGateway": {
+        "binaryMediaTypes": [
+          "application/pdf",
+          "application/octet-stream",
+          "*/*"
+        ]
+      },
       "environment": {
         "COGNITO_CLIENT_ID": "1p3ks3hsp9a9p2jogk8h9km9",
         "COGNITO_CLIENT_SECRET": "152qllbnetkfmtfsec80jb5rlfm3cjg6m5hh8pqndt6e8q4rjgs",
@@ -183,7 +190,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
-                "S3Key": "serverless/lawai-serverless/dev/1759119659689-2025-09-29T04:20:59.689Z/lawai-serverless.zip"
+                "S3Key": "serverless/lawai-serverless/dev/1759204019974-2025-09-30T03:46:59.974Z/lawai-serverless.zip"
               },
               "Handler": "lambda-auth.handler",
               "Runtime": "nodejs18.x",
@@ -214,20 +221,25 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersion7rHto8QbBcMS2eCVsQ41kCENp0plJf59hUz7cECD0": {
+          "ApiLambdaVersionwXCdcP61VFNai9W71sn5xlNjO5GdgWc6KHHsy6oy4Js": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "1OMaqJ6lZYirtKTy5Nbhv2uX8KJCOEo1VVKhdG6eWSc="
+              "CodeSha256": "xCdmLS2kCYtAV+DBcFyMYb0Kcnzd/xVbyC6gzwDcM1Q="
             }
           },
           "ApiGatewayRestApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
               "Name": "dev-lawai-serverless",
+              "BinaryMediaTypes": [
+                "application/pdf",
+                "application/octet-stream",
+                "*/*"
+              ],
               "EndpointConfiguration": {
                 "Types": [
                   "EDGE"
@@ -439,7 +451,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1759119653174": {
+          "ApiGatewayDeployment1759204013282": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -502,7 +514,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersion7rHto8QbBcMS2eCVsQ41kCENp0plJf59hUz7cECD0"
+              "Ref": "ApiLambdaVersionwXCdcP61VFNai9W71sn5xlNjO5GdgWc6KHHsy6oy4Js"
             },
             "Export": {
               "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
@@ -609,7 +621,7 @@
         "memory": 1024,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ApiLambdaVersion7rHto8QbBcMS2eCVsQ41kCENp0plJf59hUz7cECD0"
+        "versionLogicalId": "ApiLambdaVersionwXCdcP61VFNai9W71sn5xlNjO5GdgWc6KHHsy6oy4Js"
       }
     },
     "configValidationMode": "warn",
@@ -646,7 +658,7 @@
         "artifactsS3KeyDirname": "serverless/lawai-serverless/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
         "artifact": "/Users/josephesfandiari/Lawyer App/law-ai/server/.serverless/lawai-serverless.zip",
-        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759119659689-2025-09-29T04:20:59.689Z"
+        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759204019974-2025-09-30T03:46:59.974Z"
       }
     },
     "appId": null,
@@ -655,7 +667,7 @@
     "artifact": "/Users/josephesfandiari/Lawyer App/law-ai/server/.serverless/lawai-serverless.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/lawai-serverless/dev/1759119659689-2025-09-29T04:20:59.689Z",
+    "artifactDirectoryName": "serverless/lawai-serverless/dev/1759204019974-2025-09-30T03:46:59.974Z",
     "artifact": "lawai-serverless.zip"
   }
 }

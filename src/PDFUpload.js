@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from './contexts/AuthContext';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
-function PDFUpload({ caseId, onUploaded }) {
+function PDFUpload({ caseId, folderPath, onUploaded }) {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
-  const { user } = useAuth();
 
   const handleChange = (e) => {
     setFile(e.target.files[0]);
@@ -27,8 +25,21 @@ function PDFUpload({ caseId, onUploaded }) {
       const formData = new FormData();
       formData.append('file', file, file.name);
       
-      // Send caseId as query parameter instead of form data
-      const uploadUrl = caseId ? `${API_BASE}/s3/upload?caseId=${encodeURIComponent(caseId)}` : `${API_BASE}/s3/upload`;
+      // Build upload URL with caseId and folderPath parameters
+      let uploadUrl = `${API_BASE}/s3/upload`;
+      const params = new URLSearchParams();
+      
+      if (caseId) {
+        params.append('caseId', caseId);
+      }
+      
+      if (folderPath) {
+        params.append('folderPath', folderPath);
+      }
+      
+      if (params.toString()) {
+        uploadUrl += '?' + params.toString();
+      }
 
       const res = await fetch(uploadUrl, {
         method: 'POST',
