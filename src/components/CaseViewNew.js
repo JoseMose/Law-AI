@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PDFUpload from '../PDFUpload';
 
 const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
 
 // Component for displaying a document with modern styling
-const DocumentItem = ({ document, onPreview, onShowVersions }) => {
+const DocumentItem = ({ document, onPreview, onShowVersions, onReview, reviewing }) => {
   return (
     <div className="card mb-2">
       <div className="card-body p-4">
@@ -29,6 +29,23 @@ const DocumentItem = ({ document, onPreview, onShowVersions }) => {
               onClick={() => onPreview(document)}
             >
               👁️ Preview
+            </button>
+            <button 
+              style={{
+                backgroundColor: reviewing === document.id ? '#6c757d' : '#28a745',
+                color: 'white',
+                padding: '6px 12px',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                cursor: reviewing === document.id ? 'not-allowed' : 'pointer'
+              }}
+              onClick={() => {
+                if (onReview && reviewing !== document.id) onReview(document);
+              }}
+              disabled={reviewing === document.id}
+            >
+              {reviewing === document.id ? '⏳ Reviewing...' : '🔍 Review'}
             </button>
             <button 
               className="btn btn-secondary btn-sm" 
@@ -83,6 +100,32 @@ export default function CaseView() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewingDoc, setPreviewingDoc] = useState(null);
   const [showingVersionsFor, setShowingVersionsFor] = useState(null);
+  
+  // Review state
+  const [reviewing, setReviewing] = useState(null);
+  const [reviewResults, setReviewResults] = useState(null);
+  const [showReviewMode, setShowReviewMode] = useState(false);
+  const [editableContent, setEditableContent] = useState('');
+  const [selectedIssue, setSelectedIssue] = useState(null);
+
+  // Ref for editable div
+  const editableDivRef = useRef(null);
+
+  const handleSidebarIssueClick = (issue) => {
+    setSelectedIssue(issue);
+    setTimeout(() => {
+      const el = document.getElementById(`issue-${issue.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Select the text inside the span
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }, 100);
+  };
 
   // Load case details
   const loadCase = useCallback(async () => {
@@ -189,16 +232,100 @@ export default function CaseView() {
     setShowingVersionsFor(doc);
   };
 
+  const handleReview = async (doc) => {
+    try {
+      setReviewing(doc.id);
+      setReviewResults(null);
+      
+      const res = await fetch(`${API_BASE}/contracts/review`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}` 
+        },
+        body: JSON.stringify({ key: doc.key || `cases/${id}/documents/${doc.id}/document.pdf` })
+      });
+      
+      if (!res.ok) throw new Error('Review failed');
+      
+      const data = await res.json();
+      
+      setReviewResults({
+        document: doc,
+        ...data
+      });
+      
+      // Set the editable content from the original text
+      setEditableContent(data.originalText || '');
+      
+      // Set preview mode but with review data
+      setPreviewingDoc(doc);
+      setPreviewUrl(null); // Clear regular preview
+      setShowReviewMode(true); // New state for review mode
+      
+    } catch (error) {
+      console.error('Review error:', error);
+      alert('Failed to review document: ' + error.message);
+    } finally {
+      setReviewing(null);
+    }
+  };
+
   // Close preview
   const closePreview = () => {
     setPreviewUrl(null);
     setPreviewingDoc(null);
+    setShowReviewMode(false);
+    setReviewResults(null);
+    setEditableContent('');
+    setSelectedIssue(null);
+  };
+
+  // Apply a suggested fix to the editable content
+  const applyFix = (issue) => {
+    if (!issue.suggestedText || !issue.originalText) {
+      alert('No suggested text available for this issue');
+      return;
+    }
+
+    const updatedContent = editableContent.replace(issue.originalText, issue.suggestedText);
+    setEditableContent(updatedContent);
+    
+    // Remove this issue from the list since it's been fixed
+    if (reviewResults) {
+      const updatedIssues = reviewResults.issues.filter(i => i.id !== issue.id);
+      setReviewResults({
+        ...reviewResults,
+        issues: updatedIssues
+      });
+    }
+    
+    alert('Fix applied successfully!');
   };
 
   // Close versions
   const closeVersions = () => {
     setShowingVersionsFor(null);
   };
+
+  // Utility to highlight all issues in the contract text
+  function getHighlightedHtml(content, issues, selectedIssueId) {
+    if (!issues || issues.length === 0) return content.replace(/\n/g, '<br/>');
+    let html = content;
+    // Sort issues by originalText length descending to avoid nested replacements
+    const sorted = [...issues].sort((a, b) => (b.originalText?.length || 0) - (a.originalText?.length || 0));
+    sorted.forEach(issue => {
+      if (!issue.originalText) return;
+      // Escape regex special chars in originalText
+      const escaped = issue.originalText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Only replace the first occurrence for each issue
+      html = html.replace(
+        new RegExp(escaped, 'm'),
+        `<span id="issue-${issue.id}" class="issue-highlight ${issue.type} ${selectedIssueId===issue.id?'selected':''}" style="background:${issue.type==='error'?'#ffeaea':issue.type==='warning'?'#fffbe6':'#e6f7ff'};color:#111;font-weight:600;border:2px solid ${issue.type==='error'?'#dc3545':issue.type==='warning'?'#ffc107':'#17a2b8'};border-radius:4px;padding:2px 4px;box-shadow:0 1px 4px rgba(0,0,0,0.04);cursor:pointer;">${issue.originalText}</span>`
+      );
+    });
+    return html.replace(/\n/g, '<br/>');
+  }
 
   useEffect(() => {
     if (id) {
@@ -262,7 +389,7 @@ export default function CaseView() {
         </div>
 
         {/* Document Preview */}
-        {previewUrl && previewingDoc && (
+        {previewUrl && previewingDoc && !showReviewMode && (
           <div className="card mb-6">
             <div className="card-header">
               <div className="flex items-center justify-between">
@@ -283,6 +410,191 @@ export default function CaseView() {
                 style={{ width: '100%', height: '70vh', border: 'none' }}
                 title="Document Preview"
               />
+            </div>
+          </div>
+        )}
+
+        {/* Document Review Interface */}
+        {showReviewMode && previewingDoc && reviewResults && (
+          <div className="card mb-6">
+            <div className="card-header">
+              <div className="flex items-center justify-between">
+                <h3 className="card-title">
+                  Contract Review: {previewingDoc.filename || previewingDoc.name}
+                </h3>
+                <div className="flex gap-2">
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    backgroundColor: reviewResults.overallRisk === 'High' ? '#dc3545' : 
+                                   reviewResults.overallRisk === 'Medium' ? '#ffc107' : '#28a745',
+                    color: 'white'
+                  }}>
+                    Risk: {reviewResults.overallRisk}
+                  </span>
+                  <button 
+                    onClick={closePreview}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Close Review
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="card-body p-0" style={{ display: 'flex', height: '70vh' }}>
+              {/* Editable Content Area */}
+              <div style={{ 
+                flex: '1', 
+                borderRight: '1px solid #e5e7eb',
+                overflow: 'auto'
+              }}>
+                <div
+                  ref={editableDivRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    background: '#fff',
+                    color: '#222',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    padding: '28px',
+                    fontFamily: 'Menlo, Monaco, Consolas, monospace',
+                    fontSize: '16px',
+                    lineHeight: '1.8',
+                    outline: 'none',
+                    overflow: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    margin: '18px',
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: getHighlightedHtml(editableContent, reviewResults.issues, selectedIssue?.id)
+                  }}
+                  onInput={e => setEditableContent(e.currentTarget.innerText)}
+                />
+              </div>
+
+              {/* Issues Sidebar */}
+              <div style={{ 
+                width: '370px', 
+                backgroundColor: '#f9fafb',
+                color: '#1a1a1a',
+                fontSize: '15px',
+                fontWeight: 500,
+                borderLeft: '2px solid #e5e7eb',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                padding: '28px',
+                overflow: 'auto',
+              }}>
+                <h4 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>
+                  Issues Found ({reviewResults.issues?.length || 0})
+                </h4>
+                
+                {reviewResults.summary && (
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    marginBottom: '15px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <strong>Summary:</strong> {reviewResults.summary}
+                  </div>
+                )}
+
+                {reviewResults.issues?.map((issue, index) => (
+                  <div 
+                    key={issue.id || index} 
+                    style={{
+                      backgroundColor: 'white',
+                      border: '2px solid #e5e7eb',
+                      borderLeft: `6px solid ${
+                        issue.type === 'error' ? '#dc3545' : 
+                        issue.type === 'warning' ? '#ffc107' : '#17a2b8'
+                      }`,
+                      borderRadius: '8px',
+                      padding: '18px',
+                      marginBottom: '18px',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 6px rgba(0,0,0,0.04)'
+                    }}
+                    onClick={() => handleSidebarIssueClick(issue)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ marginRight: '8px' }}>
+                        {issue.type === 'error' ? '🔴' : issue.type === 'warning' ? '🟡' : '🔵'}
+                      </span>
+                      <strong style={{ fontSize: '14px' }}>{issue.title}</strong>
+                    </div>
+                    
+                    <p style={{ 
+                      margin: '8px 0', 
+                      fontSize: '13px',
+                      color: '#374151'
+                    }}>
+                      {issue.description}
+                    </p>
+                    
+                    {issue.suggestion && (
+                      <div style={{
+                        backgroundColor: '#f1f5f9',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        marginBottom: '8px',
+                        fontSize: '13px'
+                      }}>
+                        <strong>Suggestion:</strong> {issue.suggestion}
+                      </div>
+                    )}
+                    
+                    {issue.originalText && issue.suggestedText && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          applyFix(issue);
+                        }}
+                        style={{
+                          backgroundColor: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
+                      >
+                        Apply Fix
+                      </button>
+                    )}
+                    
+                    {issue.section && (
+                      <div style={{ 
+                        fontSize: '11px', 
+                        color: '#6b7280', 
+                        marginTop: '8px'
+                      }}>
+                        {issue.section}
+                        {issue.line && ` • Line ${issue.line}`}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {(!reviewResults.issues || reviewResults.issues.length === 0) && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px 20px',
+                    color: '#6b7280'
+                  }}>
+                    <div style={{ fontSize: '24px', marginBottom: '10px' }}>✅</div>
+                    <div>All issues resolved!</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -388,6 +700,8 @@ export default function CaseView() {
                       document={doc}
                       onPreview={handlePreview}
                       onShowVersions={handleShowVersions}
+                      onReview={handleReview}
+                      reviewing={reviewing}
                     />
                   ))
                 }
@@ -399,6 +713,8 @@ export default function CaseView() {
                     document={d}
                     onPreview={handlePreview}
                     onShowVersions={handleShowVersions}
+                    onReview={handleReview}
+                    reviewing={reviewing}
                   />
                 ))}
 
@@ -450,6 +766,8 @@ export default function CaseView() {
             </div>
           )}
         </div>
+
+
       </div>
     </div>
   );

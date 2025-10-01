@@ -5,7 +5,7 @@ import PDFUpload from '../PDFUpload';
 const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
 
 // Component for displaying a document with simplified actions
-const DocumentWithVersions = ({ document, onPreview, onShowVersions }) => {
+const DocumentWithVersions = ({ document, onPreview, onShowVersions, onReview, reviewing }) => {
   return (
     <div className="card mb-2">
       <div className="card-body p-4">
@@ -29,6 +29,23 @@ const DocumentWithVersions = ({ document, onPreview, onShowVersions }) => {
               onClick={() => onPreview(document)}
             >
               👁️ Preview
+            </button>
+            <button 
+              style={{ 
+                backgroundColor: 'red', 
+                color: 'white',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+              onClick={() => {
+                alert('Review button works!');
+                console.log('Review button clicked!', document);
+                if (onReview) onReview(document);
+              }}
+            >
+              🔍 REVIEW TEST
             </button>
             <button 
               className="btn btn-secondary btn-sm" 
@@ -87,11 +104,24 @@ export default function CaseView() {
   // Load folders and documents from backend
   const loadFoldersAndDocuments = async () => {
     try {
-      const res = await fetch(`${API_BASE}/cases/${id}/folders`);
+      const url = `${API_BASE}/case-folders/${id}`;
+      const token = sessionStorage.getItem('accessToken');
+      console.log('Loading folders - URL:', url, 'token present:', !!token);
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      console.log('Folders GET status:', res.status, 'ok:', res.ok);
       if (res.ok) {
         const data = await res.json();
         setFolders(data.folders || []);
         setDocuments(data.documents || []);
+      }
+      else {
+        const text = await res.text().catch(() => '');
+        console.error('Failed to load folders. Status:', res.status, 'Body:', text);
       }
     } catch (error) {
       console.error('Error loading folders:', error);
@@ -110,6 +140,7 @@ export default function CaseView() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
+          , 'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
         },
         body: JSON.stringify({
           caseId: id,
@@ -924,6 +955,20 @@ export default function CaseView() {
             <span className="breadcrumb-item active">{cs.title}</span>
           </div>
           <h1 className="page-title">{cs.title}</h1>
+          <button 
+            style={{
+              backgroundColor: 'red',
+              color: 'white',
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: '5px',
+              fontSize: '16px',
+              margin: '10px 0'
+            }}
+            onClick={() => alert('TEST BUTTON WORKS - Changes are being applied!')}
+          >
+            🚨 TEST BUTTON - CHANGES WORKING? 🚨
+          </button>
           {cs.description && (
             <p className="page-description">{cs.description}</p>
           )}
@@ -1040,22 +1085,96 @@ export default function CaseView() {
                   return doc.folderPath === currentFolder.path;
                 })
                 .map(doc => (
-                <DocumentWithVersions 
-                  key={doc.id} 
-                  document={doc}
-                  onPreview={handlePreview}
-                  onShowVersions={handleShowVersionsView}
-                />
+                <div key={doc.id} className="card mb-2">
+                  <div className="card-body p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className="file-icon">📄</div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{doc.filename}</div>
+                          <div className="text-sm text-gray-500">{doc.uploadedAt}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          className="btn btn-primary btn-sm" 
+                          onClick={() => handlePreview(doc)}
+                        >
+                          👁️ Preview
+                        </button>
+                        <button 
+                          style={{ 
+                            backgroundColor: 'red', 
+                            color: 'white',
+                            padding: '8px 16px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '14px'
+                          }}
+                          onClick={() => {
+                            alert('Review button clicked!');
+                            handleReview(doc);
+                          }}
+                        >
+                          🔍 REVIEW
+                        </button>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => handleShowVersionsView(doc)}
+                        >
+                          📋 Versions
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
 
               {/* Show legacy case documents if no folders/documents from API */}
               {(!folders.length && !documents.length) && (cs.documents || []).map(d => (
-                <DocumentWithVersions 
-                  key={d.id} 
-                  document={d}
-                  onPreview={handlePreview}
-                  onShowVersions={handleShowVersionsView}
-                />
+                <div key={d.id} className="card mb-2">
+                  <div className="card-body p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className="file-icon">📄</div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{d.filename}</div>
+                          <div className="text-sm text-gray-500">{d.uploadedAt}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          className="btn btn-primary btn-sm" 
+                          onClick={() => handlePreview(d)}
+                        >
+                          👁️ Preview
+                        </button>
+                        <button 
+                          style={{ 
+                            backgroundColor: 'red', 
+                            color: 'white',
+                            padding: '8px 16px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '14px'
+                          }}
+                          onClick={() => {
+                            alert('Review button clicked!');
+                            handleReview(d);
+                          }}
+                        >
+                          🔍 REVIEW
+                        </button>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => handleShowVersionsView(d)}
+                        >
+                          📋 Versions
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -1070,6 +1189,7 @@ export default function CaseView() {
               />
             </div>
           </div>
+        </div> {/* closing flex-1 case content area */}
 
           {/* Versions Sidebar - Only appears when versions are being shown */}
       {showingVersionsFor && (
@@ -1302,8 +1422,8 @@ export default function CaseView() {
           </div>
         </div>
       )}
-        </div>
-      </div>
-    </div>
+        </div> {/* closing flex gap-6 */}
+      </div> {/* closing main-content */}
+    </div> {/* closing container */}
   );
 }

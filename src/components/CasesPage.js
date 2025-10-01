@@ -17,10 +17,26 @@ const CasesPage = () => {
   const loadCases = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases');
+      const response = await fetch('https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
+        }
+      });
       if (response.ok) {
         const data = await response.json();
-        setCases(data.cases || []);
+        // API may return an array or an object containing the array
+        if (Array.isArray(data)) {
+          setCases(data);
+        } else if (Array.isArray(data.cases)) {
+          setCases(data.cases);
+        } else if (Array.isArray(data.data)) {
+          setCases(data.data);
+        } else {
+          // Fallback: try to extract any array value
+          const arr = Object.values(data).find(v => Array.isArray(v));
+          setCases(arr || []);
+        }
       }
     } catch (error) {
       console.error('Error loading cases:', error);
@@ -38,6 +54,7 @@ const CasesPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify({
           title: newCaseTitle.trim(),
@@ -46,15 +63,52 @@ const CasesPage = () => {
       });
 
       if (response.ok) {
+        const created = await response.json();
+        // created.case may hold the new case
+        const createdCase = created.case || created || null;
         setShowCreateModal(false);
         setNewCaseTitle('');
         setNewCaseDescription('');
+        // Optimistically append the created case to the list
+        if (createdCase) {
+          setCases(prev => [ ...prev, createdCase ]);
+        }
+        // Refresh from server to ensure canonical data
         loadCases();
+      } else {
+        const errorData = await response.text();
+        console.error('Error response:', response.status, errorData);
+        alert(`Error creating case: ${response.status} - ${errorData}`);
       }
     } catch (error) {
       console.error('Error creating case:', error);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteCase = async (caseId) => {
+    if (!window.confirm('Delete this case? This action cannot be undone.')) return;
+    try {
+      const response = await fetch(`https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases/${caseId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
+        }
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setCases(prev => prev.filter(c => c.id !== caseId));
+      } else {
+        const text = await response.text();
+        console.error('Failed to delete case:', response.status, text);
+        alert('Failed to delete case: ' + response.status);
+      }
+    } catch (e) {
+      console.error('Error deleting case:', e);
+      alert('Error deleting case');
     }
   };
 
@@ -127,8 +181,8 @@ const CasesPage = () => {
         ) : (
           <div className="grid grid-cols-1 gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
             {cases.map((caseItem) => (
-              <div key={caseItem.id} className="card cursor-pointer" onClick={() => navigate(`/case/${caseItem.id}`)}>
-                <div className="card-body">
+              <div key={caseItem.id} className="card">
+                <div className="card-body cursor-pointer" onClick={() => navigate(`/case/${caseItem.id}`)}>
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="card-title">{caseItem.title}</h3>
@@ -138,7 +192,6 @@ const CasesPage = () => {
                     </div>
                     {getStatusBadge(caseItem.status)}
                   </div>
-                  
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <span>Created {formatDate(caseItem.createdAt)}</span>
                     <span className="flex items-center gap-2">
@@ -146,6 +199,10 @@ const CasesPage = () => {
                       {caseItem.documentCount || 0} docs
                     </span>
                   </div>
+                </div>
+                {/* Delete button at the bottom of the card */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+                  <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteCase(caseItem.id); }} title="Delete case">Delete</button>
                 </div>
               </div>
             ))}

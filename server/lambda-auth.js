@@ -150,9 +150,76 @@ exports.handler = async (event, context) => {
         data: {
           test: true,
           timestamp: new Date().toISOString(),
-          random: Math.random()
+          random: Math.random(),
+          deployedAt: 'October 1, 2025 - 2:32am'
         }
       });
+    }
+
+    // New folder listing endpoint with different path
+    const folderListMatch = path.match(/^\/(?:dev\/)?case-folders\/([^\/]+)\/?$/);
+    if (folderListMatch) {
+      const caseId = folderListMatch[1];
+      console.log('Processing case-folders request for case:', caseId);
+      
+      try {
+        const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+        const s3Client = new S3Client({ region: 'us-east-1' });
+        
+        const listCommand = new ListObjectsV2Command({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Prefix: `cases/${caseId}/`,
+          MaxKeys: 1000
+        });
+        
+        const s3Response = await s3Client.send(listCommand);
+        const allObjects = s3Response.Contents || [];
+        
+        const folders = [];
+        const documents = [];
+        
+        for (const obj of allObjects) {
+          const key = obj.Key;
+          
+          // Check if it's a folder info file
+          if (key.includes('/folders/') && key.endsWith('.folderinfo')) {
+            try {
+              const headCommand = new (require('@aws-sdk/client-s3').HeadObjectCommand)({
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: key
+              });
+              
+              const headResponse = await s3Client.send(headCommand);
+              const metadata = headResponse.Metadata || {};
+              
+              folders.push({
+                name: metadata.foldername || 'Unknown Folder',
+                path: metadata.folderpath || '',
+                fullPath: key.replace('.folderinfo', ''),
+                createdAt: metadata.createdat || obj.LastModified?.toISOString()
+              });
+            } catch (error) {
+              console.log('Could not get folder metadata for:', key);
+            }
+          }
+        }
+        
+        return createResponse(200, {
+          folders: folders,
+          documents: documents,
+          caseId: caseId,
+          totalFolders: folders.length,
+          message: 'Folders loaded successfully'
+        });
+        
+      } catch (s3Error) {
+        console.error('S3 folder listing error:', s3Error);
+        return createResponse(500, {
+          success: false,
+          error: 'Failed to load folders from S3',
+          details: s3Error.message
+        });
+      }
     }
 
     // Direct auth endpoints (without /auth/ prefix)
@@ -901,18 +968,15 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // List Folders endpoint
-    if (path.startsWith('/cases/') && path.endsWith('/folders') || 
-        path.startsWith('/dev/cases/') && path.endsWith('/folders')) {
-      
-      const pathParts = path.split('/');
-      const caseId = pathParts[pathParts.indexOf('cases') + 1];
+    // List Folders endpoint - completely rewritten
+    const isFoldersRequest = path.match(/^\/(?:dev\/)?cases\/([^\/]+)\/folders\/?$/);
+    if (isFoldersRequest) {
+      const caseId = isFoldersRequest[1];
+      console.log('Processing folders request for case:', caseId);
       
       if (!caseId) {
-        return createResponse(400, { error: 'Case ID required' });
+        return createResponse(400, { error: 'Case ID required for folders endpoint' });
       }
-
-      console.log('Get folders for case:', caseId);
       
       try {
         const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
@@ -2259,6 +2323,8 @@ This Agreement constitutes the entire agreement between the parties and supersed
         'GET /verifyToken',
         'GET /cases',
         'GET /cases/{id}',
+        'GET /cases/{id}/folders',
+        'POST /folders/create',
         'DELETE /cases/{id}',
         'PUT /cases/{id}',
         'DELETE /cases/{id}/documents/{name}',

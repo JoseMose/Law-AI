@@ -188,37 +188,46 @@ a:hover {
   list-style: none;
 }
 
+
 .navbar-link {
   color: var(--color-gray-600);
   font-weight: 500;
   font-size: var(--font-size-sm);
   text-decoration: none;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-xl);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   position: relative;
+  display: inline-block;
+  letter-spacing: 0.01em;
 }
+
 
 .navbar-link:hover {
   color: var(--color-primary);
   background-color: var(--color-gray-100);
   text-decoration: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.04);
 }
+
 
 .navbar-link.active {
   color: var(--color-accent);
   background-color: var(--color-gray-100);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
 }
+
 
 .navbar-link.active::after {
   content: '';
   position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
+  bottom: -2px;
+  left: 18%;
+  right: 18%;
+  height: 3px;
   background: var(--color-accent);
-  border-radius: 1px;
+  border-radius: 2px;
 }
 
 .navbar-user {

@@ -26,14 +26,20 @@ const Navigation = ({ user, onSignOut }) => {
         {/* Navigation Links */}
         <ul className="navbar-nav">
           <li>
-            <Link 
-              to="/cases" 
-              className={`navbar-link ${isActive('/cases') ? 'active' : ''}`}
-            >
-              Cases
-            </Link>
+            <Link to="/dashboard" className={`navbar-link ${isActive('/dashboard') ? 'active' : ''}`} title="Overview of cases, billing, deadlines, etc.">Dashboard</Link>
           </li>
-          {/* Future navigation items can go here */}
+          <li>
+            <Link to="/cases" className={`navbar-link ${isActive('/cases') ? 'active' : ''}`} title="🔥 Central hub (everything lives here)">Cases</Link>
+          </li>
+          <li>
+            <Link to="/clients" className={`navbar-link ${isActive('/clients') ? 'active' : ''}`} title="Client directory + history">Clients</Link>
+          </li>
+          <li>
+            <Link to="/billing" className={`navbar-link ${isActive('/billing') ? 'active' : ''}`} title="Global financial overview (invoices, payments, subscriptions)">Billing</Link>
+          </li>
+          <li>
+            <Link to="/settings" className={`navbar-link ${isActive('/settings') ? 'active' : ''}`} title="Account, team, security, integrations">Settings</Link>
+          </li>
         </ul>
 
         {/* User Menu */}
