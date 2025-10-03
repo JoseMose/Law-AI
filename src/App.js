@@ -11,9 +11,10 @@ import CasesPage from './components/CasesPage';
 import CaseView from './components/CaseViewNew';
 import DashboardPage from './components/DashboardPage';
 import ClientsPage from './components/ClientsPage';
+import ClientProfile from './components/ClientProfile';
 import BillingPage from './components/BillingPage';
 import SettingsPage from './components/SettingsPage';
-import { DemoMode } from './components/DemoMode';
+import LegalResearchPage from './components/LegalResearchPage';
 import Navigation from './components/Navigation';
 import './styles/modern.css';
 import './styles/landing.css';
@@ -99,6 +100,12 @@ function AppContent() {
             </ProtectedRoute>
           } />
 
+          <Route path="/clients/:id" element={
+            <ProtectedRoute>
+              <ClientProfile />
+            </ProtectedRoute>
+          } />
+
           <Route path="/billing" element={
             <ProtectedRoute>
               <BillingPage />
@@ -110,6 +117,12 @@ function AppContent() {
               <SettingsPage />
             </ProtectedRoute>
           } />
+
+          <Route path="/legal-research" element={
+            <ProtectedRoute>
+              <LegalResearchPage />
+            </ProtectedRoute>
+          } />
         </Routes>
       </div>
     </Router>
@@ -117,15 +130,6 @@ function AppContent() {
 }
 
 function App() {
-  const backendDisabled = process.env.REACT_APP_BACKEND_DISABLED === 'true';
-  const isProduction = process.env.NODE_ENV === 'production';
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-  
-  // Show demo mode if backend is disabled or in production with localhost API
-  if (backendDisabled || (isProduction && apiUrl.includes('localhost'))) {
-    return <DemoMode />;
-  }
-
   return (
     <AuthProvider>
       <AppContent />

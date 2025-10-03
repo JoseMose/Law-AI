@@ -19,6 +19,3 @@ frontend:
     paths:
       - node_modules/**/*
       - .npm/**/*
-  env:
-    variables:
-      REACT_APP_BACKEND_DISABLED: 'true'

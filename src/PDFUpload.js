@@ -64,15 +64,26 @@ function PDFUpload({ caseId, folderPath, onUploaded }) {
     }
   };
 
-  return (
-    <div className="card">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <input type="file" accept="application/pdf" onChange={handleChange} />
-        <button className="primaryBtn" onClick={handleUpload}>Upload</button>
+    return (
+      <div className="card bg-white border rounded-lg shadow-md p-4" style={{ maxWidth: 420 }}>
+        <div className="flex items-center gap-4">
+          <label htmlFor="pdf-upload-input" className="btn btn-secondary" style={{ cursor: 'pointer', marginBottom: 0 }}>
+            {file ? file.name : 'Choose PDF'}
+            <input
+              id="pdf-upload-input"
+              type="file"
+              accept="application/pdf"
+              onChange={handleChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button className="btn btn-primary" onClick={handleUpload} disabled={!file} style={{ minWidth: 100 }}>
+            Upload
+          </button>
+        </div>
+        {message && <div className="text-sm text-gray-600 mt-2">{message}</div>}
       </div>
-      {message && <div style={{ marginTop: 8 }} className="muted">{message}</div>}
-    </div>
-  );
+    );
 }
 
 export default PDFUpload;

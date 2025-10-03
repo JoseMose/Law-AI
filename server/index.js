@@ -1,6 +1,6 @@
 const express = require('express');
 const { CognitoIdentityProvider } = require('@aws-sdk/client-cognito-identity-provider');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const multer = require('multer');
 const cors = require('cors');
@@ -134,12 +134,19 @@ const errorHandler = (err, req, res, next) => {
 // Authentication middleware
 const authenticateToken = async (req, res, next) => {
   try {
+    // Accept token from Authorization header or fallback to query param `t` (useful for iframe downloads)
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    let token = null;
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+    if (!token && req.query && typeof req.query.t === 'string' && req.query.t.trim()) {
+      token = req.query.t.trim();
+    }
+    if (!token) {
       throw { status: 401, message: 'No token provided' };
     }
 
-    const token = authHeader.split(' ')[1];
     const params = {
       AccessToken: token
     };
@@ -685,6 +692,18 @@ app.get('/s3/download', authenticateToken, async (req, res) => {
     let allowed = false;
     if (username && key.startsWith(`pdfs/${username}/`)) allowed = true;
     if (!allowed) {
+      // Allow if key is within a user-owned case path
+      const m = /^cases\/([^/]+)\//.exec(key);
+      if (m && m[1]) {
+        const caseIdFromKey = m[1];
+        const cases = readCases();
+        const cs = cases.find(c => c.id === caseIdFromKey);
+        if (cs && cs.owner === username) {
+          allowed = true;
+        }
+      }
+    }
+    if (!allowed) {
       const cases = readCases();
       for (const c of cases) {
         if (c.owner !== username) continue;
@@ -978,6 +997,30 @@ The company disclaims liability without limitation. The term is indefinite and a
       annotatedHtml = null;
     }
 
+    // Update document's lastReviewedAt timestamp
+    try {
+      // Extract case ID and document ID from the key
+      const keyParts = key.split('/');
+      if (keyParts.length >= 4 && keyParts[0] === 'cases' && keyParts[2] === 'documents') {
+        const caseId = keyParts[1];
+        const documentId = keyParts[3].split('.')[0]; // Remove file extension
+        
+        // Read cases and update the document's lastReviewedAt
+        const cases = readCases();
+        const caseIndex = cases.findIndex(c => c.id === caseId);
+        if (caseIndex !== -1) {
+          const docIndex = cases[caseIndex].documents?.findIndex(d => d.id === documentId || d.filename === documentId + '.pdf');
+          if (docIndex !== -1 && cases[caseIndex].documents[docIndex]) {
+            cases[caseIndex].documents[docIndex].lastReviewedAt = new Date().toISOString();
+            writeCases(cases);
+            console.log(`Updated lastReviewedAt for document ${documentId} in case ${caseId}`);
+          }
+        }
+      }
+    } catch (updateErr) {
+      console.warn('Failed to update lastReviewedAt:', updateErr);
+    }
+
     return res.json({ success: true, issues, sampleTextAvailable: !!extractedText, originalText: sampleText, annotatedHtml });
   } catch (err) {
     console.error('contracts review error:', err);
@@ -1069,6 +1112,97 @@ app.post('/contracts/fix', authenticateToken, express.json(), async (req, res) =
   } catch (err) {
     console.error('contracts fix error:', err);
     return res.status(500).json({ error: 'Failed to produce fix' });
+  }
+});
+
+// Simple case folders/documents listing (maps from cases store and optionally S3)
+console.log('Registering route: GET /case-folders/:id');
+app.get('/case-folders/:id', authenticateToken, async (req, res) => {
+  try {
+    const caseId = req.params.id;
+    const username = req.user?.username;
+    
+    // Try to list S3 objects under cases/<caseId>/documents first
+    let s3Docs = [];
+    if (S3_BUCKET) {
+      try {
+        const prefix = `cases/${caseId}/documents/`;
+        console.log(`Listing S3 objects with prefix: ${prefix}`);
+        const listRes = await s3Client.send(new ListObjectsV2Command({ Bucket: S3_BUCKET, Prefix: prefix }));
+        s3Docs = (listRes && listRes.Contents) ? listRes.Contents.map(o => ({ key: o.Key, size: o.Size, lastModified: o.LastModified })) : [];
+        console.log(`Found ${s3Docs.length} S3 objects:`, s3Docs.map(d => d.key));
+      } catch (e) {
+        console.warn('ListObjects failed for case documents:', e && e.message ? e.message : e);
+      }
+    }
+    
+    // If we found S3 documents, create documents from them directly
+    if (s3Docs.length > 0) {
+      const path = require('path');
+      const documents = s3Docs.map((s3Doc, index) => {
+        const filename = path.basename(s3Doc.key);
+        return {
+          id: `s3_doc_${index}`,
+          filename,
+          key: s3Doc.key,
+          folderPath: '',
+          uploadedAt: s3Doc.lastModified ? s3Doc.lastModified.toISOString() : new Date().toISOString(),
+          lastReviewedAt: null, // Will be set when document is reviewed
+          size: s3Doc.size,
+          contentType: filename.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'
+        };
+      });
+      console.log(`Returning ${documents.length} documents from S3`);
+      return res.json({ folders: [], documents });
+    }
+
+    // Fallback to local case metadata if no S3 documents found
+    const cases = readCases();
+    const cs = cases.find(c => c.id === caseId);
+    if (!cs) return res.status(404).json({ error: 'case not found' });
+    if (cs.owner !== username) return res.status(403).json({ error: 'forbidden' });
+
+    const path = require('path');
+    const findKeyForFilename = (name) => {
+      if (!name || !s3Docs.length) return null;
+      const lower = String(name).toLowerCase();
+      // Direct suffix match under the documents/ folder
+      const direct = s3Docs.find(d => d.key && d.key.toLowerCase().endsWith('/' + lower));
+      if (direct) return direct.key;
+      // Match just the basename, accounting for possible timestamp prefixes like 12345-<filename>
+      const byBase = s3Docs.find(d => {
+        const base = require('path').basename(d.key || '').toLowerCase();
+        if (!base) return false;
+        if (base === lower) return true;
+        // Allow "<digits>-filename.ext"
+        return /^\d+-/.test(base) && base.endsWith('-' + lower);
+      });
+      return byBase ? byBase.key : null;
+    };
+
+    const documents = (cs.documents || []).map((d) => {
+      const filename = d.filename || d.name || (d.key ? path.basename(d.key) : (d.urlPath || d.url ? path.basename((d.urlPath || d.url).split('?')[0]) : null)) || 'document.pdf';
+      let key = d.key || d.s3Key || null;
+      if (!key && filename) {
+        const guessed = findKeyForFilename(filename);
+        if (guessed) key = guessed;
+      }
+      return {
+        id: d.id || d.documentId || `doc_${Date.now()}`,
+        filename,
+        key,
+        folderPath: d.folderPath || '',
+        uploadedAt: d.uploadedAt || new Date().toISOString(),
+        lastReviewedAt: d.lastReviewedAt || null,
+        size: d.size || undefined,
+        contentType: d.contentType || d.mimetype || undefined
+      };
+    });
+
+    return res.json({ folders: [], documents });
+  } catch (err) {
+    console.error('case-folders error:', err && err.message ? err.message : err);
+    return res.status(500).json({ error: 'Failed to load folders/documents' });
   }
 });
 

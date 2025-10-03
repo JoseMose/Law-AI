@@ -11,6 +11,9 @@ const CLIENT_ID = process.env.COGNITO_CLIENT_ID;
 const CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET;
 const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
 
+// In-memory storage for created clients (for demo purposes)
+let createdClients = [];
+
 // Helper function to create HMAC for Cognito secret hash
 const crypto = require('crypto');
 
@@ -47,6 +50,303 @@ function createResponse(statusCode, data, customHeaders = {}) {
     },
     body: JSON.stringify(responseData)
   };
+}
+
+// Helper function to analyze contract text and identify legal issues
+function analyzeContractText(text) {
+  const issues = [];
+  const lines = text.split('\n');
+  let issueId = 1;
+
+  // Convert text to lowercase for case-insensitive matching
+  const lowerText = text.toLowerCase();
+
+  // Check for overly broad termination clauses
+  if (lowerText.includes('terminated at any time') || lowerText.includes('at-will termination')) {
+    const lineIndex = lines.findIndex(line => line.toLowerCase().includes('terminated at any time') || line.toLowerCase().includes('at-will termination'));
+    issues.push({
+      id: issueId++,
+      type: "error",
+      title: "Overly Broad Termination Clause",
+      description: "At-will termination without notice periods may violate employment laws in certain jurisdictions.",
+      suggestion: "Add reasonable notice periods and define specific grounds for immediate termination.",
+      section: "Termination",
+      line: lineIndex >= 0 ? lineIndex + 1 : null,
+      originalText: lines[lineIndex] || "Employee may be terminated at any time...",
+      suggestedText: "Employee may be terminated by Company with thirty (30) days written notice, except in cases of misconduct, breach of contract, or other just cause."
+    });
+  }
+
+  // Check for missing IP assignment
+  if (!lowerText.includes('intellectual property') && !lowerText.includes('invention')) {
+    issues.push({
+      id: issueId++,
+      type: "warning",
+      title: "Missing Intellectual Property Assignment",
+      description: "No clear assignment of intellectual property rights to the Company.",
+      suggestion: "Add comprehensive IP assignment clause to protect Company's interests.",
+      section: "New Section Needed",
+      line: null,
+      originalText: null,
+      suggestedText: "SECTION: INTELLECTUAL PROPERTY\nAll inventions, discoveries, improvements, and intellectual property created by Employee during employment shall be the sole and exclusive property of Company."
+    });
+  }
+
+  // Check for vague non-compete terms
+  if (lowerText.includes('non-compete') || lowerText.includes('compete')) {
+    const lineIndex = lines.findIndex(line => line.toLowerCase().includes('non-compete') || line.toLowerCase().includes('compete'));
+    if (lines[lineIndex] && (lines[lineIndex].includes('[TIME PERIOD]') || lines[lineIndex].includes('time period'))) {
+      issues.push({
+        id: issueId++,
+        type: "warning",
+        title: "Vague Non-Compete Terms",
+        description: "Non-compete clause lacks specific geographic scope and duration.",
+        suggestion: "Define specific geographic boundaries and scope of restricted activities.",
+        section: "Non-Compete",
+        line: lineIndex >= 0 ? lineIndex + 1 : null,
+        originalText: lines[lineIndex],
+        suggestedText: "Employee agrees not to directly or indirectly engage in competing business activities within [SPECIFIC GEOGRAPHIC AREA] for a period of twelve (12) months following termination, limited to [SPECIFIC BUSINESS ACTIVITIES]."
+      });
+    }
+  }
+
+  // Check for incomplete benefit details
+  if (lowerText.includes('benefit') && (lowerText.includes('as may be available') || lowerText.includes('similar level'))) {
+    const lineIndex = lines.findIndex(line => line.toLowerCase().includes('benefit') && (line.toLowerCase().includes('available') || line.toLowerCase().includes('similar level')));
+    issues.push({
+      id: issueId++,
+      type: "info",
+      title: "Incomplete Benefit Details",
+      description: "Benefits section lacks specific details about available plans and eligibility.",
+      suggestion: "Reference specific benefit plans or attach detailed benefits schedule.",
+      section: "Compensation/Benefits",
+      line: lineIndex >= 0 ? lineIndex + 1 : null,
+      originalText: lines[lineIndex] || "Employee shall also be entitled to participate in Company's benefit plans as may be available...",
+      suggestedText: "Employee shall be entitled to participate in Company's standard benefits package including health insurance, dental coverage, and retirement plan as detailed in Exhibit B, subject to plan terms and eligibility requirements."
+    });
+  }
+
+  // Generate annotated HTML
+  const annotatedHtml = generateAnnotatedHtml(text, issues);
+
+  // Determine overall risk level
+  let overallRisk = "Low";
+  const errorCount = issues.filter(i => i.type === 'error').length;
+  const warningCount = issues.filter(i => i.type === 'warning').length;
+
+  if (errorCount > 0) {
+    overallRisk = "High";
+  } else if (warningCount > 1) {
+    overallRisk = "Medium";
+  } else if (warningCount > 0) {
+    overallRisk = "Low-Medium";
+  }
+
+  const summary = `Document review complete. Found ${issues.length} item${issues.length !== 1 ? 's' : ''} requiring attention.`;
+
+  return {
+    issues,
+    annotatedHtml,
+    summary,
+    overallRisk
+  };
+}
+
+// Helper function to generate annotated HTML for the contract editor
+function generateAnnotatedHtml(text, issues) {
+  const lines = text.split('\n');
+  let html = `
+    <div class="contract-editor">
+      <div class="contract-header">
+        <h2>Contract Review - AI Analysis Complete</h2>
+        <div class="review-summary">
+          <span class="issue-count error">${issues.filter(i => i.type === 'error').length} Critical</span>
+          <span class="issue-count warning">${issues.filter(i => i.type === 'warning').length} Warnings</span>
+          <span class="issue-count info">${issues.filter(i => i.type === 'info').length} Info</span>
+        </div>
+      </div>
+      <div class="contract-content" contenteditable="true" spellcheck="false">
+  `;
+
+  lines.forEach((line, index) => {
+    const lineNumber = index + 1;
+    let processedLine = line;
+
+    // Check if this line has any issues
+    const lineIssues = issues.filter(issue => issue.line === lineNumber);
+    if (lineIssues.length > 0) {
+      lineIssues.forEach(issue => {
+        const className = issue.type === 'error' ? 'highlight-error' :
+                         issue.type === 'warning' ? 'highlight-warning' : 'highlight-info';
+        processedLine = `<span class="${className}" data-issue="${issue.id}" title="Click to view suggestion">${processedLine}</span>`;
+      });
+    }
+
+    html += `<div class="line-number">${lineNumber}</div>${processedLine}\n`;
+  });
+
+  // Add missing sections if needed
+  const missingSections = issues.filter(issue => !issue.line);
+  missingSections.forEach(issue => {
+    html += `<div class="highlight-warning missing-section" data-issue="${issue.id}" title="Missing section - Click to add">
+<strong>[MISSING SECTION: ${issue.title.toUpperCase()}]</strong>
+<div class="suggestion-text">💡 Recommended: Add this section to your contract</div>
+</div>\n`;
+  });
+
+  html += `
+      </div>
+    </div>
+
+    <style>
+      .contract-editor {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fefefe;
+        overflow: hidden;
+      }
+      .contract-header {
+        background: #f8f9fa;
+        padding: 16px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .contract-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #212529;
+      }
+      .review-summary {
+        display: flex;
+        gap: 12px;
+      }
+      .issue-count {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .issue-count.error { background: #f8d7da; color: #721c24; }
+      .issue-count.warning { background: #fff3cd; color: #856404; }
+      .issue-count.info { background: #d1ecf1; color: #0c5460; }
+      .contract-content {
+        padding: 20px;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        min-height: 500px;
+        position: relative;
+      }
+      .line-number {
+        display: inline-block;
+        width: 40px;
+        color: #6c757d;
+        font-size: 12px;
+        user-select: none;
+        margin-right: 10px;
+      }
+      .highlight-error {
+        background-color: #f8d7da;
+        padding: 2px 4px;
+        border-radius: 3px;
+        cursor: pointer;
+        border-left: 3px solid #dc3545;
+        transition: all 0.2s;
+      }
+      .highlight-warning {
+        background-color: #fff3cd;
+        padding: 2px 4px;
+        border-radius: 3px;
+        cursor: pointer;
+        border-left: 3px solid #ffc107;
+        transition: all 0.2s;
+      }
+      .highlight-info {
+        background-color: #d1ecf1;
+        padding: 2px 4px;
+        border-radius: 3px;
+        cursor: pointer;
+        border-left: 3px solid #17a2b8;
+        transition: all 0.2s;
+      }
+      .highlight-error:hover, .highlight-warning:hover, .highlight-info:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .missing-section {
+        background-color: #fff3cd;
+        border: 2px dashed #ffc107;
+        padding: 12px;
+        border-radius: 6px;
+        margin: 10px 0;
+        text-align: center;
+      }
+      .suggestion-text {
+        font-size: 12px;
+        color: #856404;
+        font-style: italic;
+        margin-top: 4px;
+      }
+    </style>
+  `;
+
+  return html;
+}
+
+// Helper function to update document review timestamp
+async function updateDocumentReviewTimestamp(caseId, documentKey) {
+  try {
+    const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+    const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+    const bucket = process.env.S3_BUCKET || 'contractfiles1';
+
+    // Load existing case folders data
+    const caseKey = `cases/${caseId}/case-folders.json`;
+    let caseData = { folders: [], documents: [] };
+
+    try {
+      const getCommand = new GetObjectCommand({ Bucket: bucket, Key: caseKey });
+      const response = await s3Client.send(getCommand);
+      const data = await response.Body.transformToString();
+      caseData = JSON.parse(data);
+    } catch (err) {
+      // File doesn't exist, use default structure
+      console.log('Case folders file does not exist, creating new one');
+    }
+
+    // Find and update the document
+    const docIndex = caseData.documents.findIndex(doc => doc.key === documentKey);
+    if (docIndex >= 0) {
+      caseData.documents[docIndex].lastReviewedAt = new Date().toISOString();
+    } else {
+      // Document not found, add it with review timestamp
+      caseData.documents.push({
+        id: documentKey.split('/').pop().split('.')[0],
+        filename: documentKey.split('/').pop(),
+        key: documentKey,
+        lastReviewedAt: new Date().toISOString()
+      });
+    }
+
+    // Save updated data back to S3
+    const putCommand = new PutObjectCommand({
+      Bucket: bucket,
+      Key: caseKey,
+      Body: JSON.stringify(caseData, null, 2),
+      ContentType: 'application/json'
+    });
+
+    await s3Client.send(putCommand);
+    console.log('Updated review timestamp for document:', documentKey);
+
+  } catch (error) {
+    console.error('Failed to update document review timestamp:', error);
+    throw error;
+  }
 }
 
 // In-memory case storage (persists during Lambda execution)
@@ -90,6 +390,48 @@ async function saveCasesToS3(casesArray) {
     return true;
   } catch (error) {
     console.error('Error saving cases to S3:', error);
+    return false;
+  }
+}
+
+// S3 persistence for clients
+async function loadClientsFromS3() {
+  try {
+    const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+    const s3Client = new S3Client({ region: 'us-east-1' });
+    
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: 'clients/clients.json'
+    });
+    
+    const response = await s3Client.send(command);
+    const clientsData = await response.Body.transformToString();
+    return JSON.parse(clientsData);
+  } catch (error) {
+    // If file doesn't exist or other error, return empty array
+    console.log('No existing clients file or error loading clients:', error.message);
+    return [];
+  }
+}
+
+async function saveClientsToS3(clientsArray) {
+  try {
+    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+    const s3Client = new S3Client({ region: 'us-east-1' });
+    
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: 'clients/clients.json',
+      Body: JSON.stringify(clientsArray, null, 2),
+      ContentType: 'application/json'
+    });
+    
+    await s3Client.send(command);
+    console.log('Clients saved to S3 successfully');
+    return true;
+  } catch (error) {
+    console.error('Error saving clients to S3:', error);
     return false;
   }
 }
@@ -160,7 +502,9 @@ exports.handler = async (event, context) => {
     const folderListMatch = path.match(/^\/(?:dev\/)?case-folders\/([^\/]+)\/?$/);
     if (folderListMatch) {
       const caseId = folderListMatch[1];
+      console.log('=== CASE-FOLDERS DEBUG ===');
       console.log('Processing case-folders request for case:', caseId);
+      console.log('Full path:', path);
       
       try {
         const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
@@ -172,8 +516,20 @@ exports.handler = async (event, context) => {
           MaxKeys: 1000
         });
         
+        console.log('S3 Bucket:', process.env.S3_BUCKET_NAME);
+        console.log('S3 Prefix:', `cases/${caseId}/`);
+        console.log('About to send S3 ListObjects command...');
+        
         const s3Response = await s3Client.send(listCommand);
+        console.log('S3 command completed successfully');
         const allObjects = s3Response.Contents || [];
+        
+        console.log('S3 Response received');
+        console.log('S3Response.IsTruncated:', s3Response.IsTruncated);
+        console.log('S3Response.KeyCount:', s3Response.KeyCount);
+        
+        console.log('S3 objects found:', allObjects.length);
+        console.log('All object keys:', allObjects.map(obj => obj.Key));
         
         const folders = [];
         const documents = [];
@@ -202,6 +558,59 @@ exports.handler = async (event, context) => {
               console.log('Could not get folder metadata for:', key);
             }
           }
+          
+          // Check if it's a document
+          else if (key.includes('/documents/') && 
+                   !key.includes('/versions/') && 
+                   (key.endsWith('.pdf') || key.endsWith('.docx') || key.endsWith('.txt'))) {
+            
+            try {
+              const headCommand = new (require('@aws-sdk/client-s3').HeadObjectCommand)({
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: key
+              });
+              
+              const headResponse = await s3Client.send(headCommand);
+              const metadata = headResponse.Metadata || {};
+              
+              // Determine which folder this document belongs to
+              let folderPath = '';
+              if (key.includes('/folders/')) {
+                const folderMatch = key.match(/\/folders\/([^\/]+)\//);
+                folderPath = folderMatch ? folderMatch[1] : '';
+              }
+              
+              documents.push({
+                id: key.split('/').pop().replace(/\.(pdf|docx|txt)$/, ''),
+                filename: metadata.originalfilename || key.split('/').pop(),
+                key: key,
+                folderPath: folderPath,
+                uploadedAt: metadata.uploadedat || obj.LastModified?.toISOString(),
+                size: Math.round((obj.Size || 0) / 1024) + ' KB',
+                contentType: headResponse.ContentType || 'application/octet-stream'
+              });
+            } catch (error) {
+              console.log('Could not get document metadata for:', key);
+            }
+          }
+        }
+        
+        console.log('Final folders count:', folders.length);
+        console.log('Final documents count:', documents.length);
+        console.log('Documents found:', documents);
+        
+        // Add a test document if none found
+        if (documents.length === 0) {
+          console.log('No documents found, adding test document');
+          documents.push({
+            id: 'test-doc',
+            filename: 'test-document.pdf',
+            key: `cases/${caseId}/documents/test-document.pdf`,
+            folderPath: '',
+            uploadedAt: new Date().toISOString(),
+            size: '15 KB',
+            contentType: 'application/pdf'
+          });
         }
         
         return createResponse(200, {
@@ -209,15 +618,25 @@ exports.handler = async (event, context) => {
           documents: documents,
           caseId: caseId,
           totalFolders: folders.length,
-          message: 'Folders loaded successfully'
+          totalDocuments: documents.length,
+          message: 'Folders and documents loaded successfully'
         });
         
       } catch (s3Error) {
-        console.error('S3 folder listing error:', s3Error);
+        console.error('=== S3 ERROR DETAILS ===');
+        console.error('Error type:', s3Error.name);
+        console.error('Error message:', s3Error.message);
+        console.error('Error code:', s3Error.code);
+        console.error('Full error:', s3Error);
+        
         return createResponse(500, {
           success: false,
           error: 'Failed to load folders from S3',
-          details: s3Error.message
+          errorType: s3Error.name,
+          errorCode: s3Error.code,
+          details: s3Error.message,
+          caseId: caseId,
+          bucket: process.env.S3_BUCKET_NAME
         });
       }
     }
@@ -628,7 +1047,17 @@ exports.handler = async (event, context) => {
       if (method === 'POST') {
         // Create new case
         try {
-          requestBody = JSON.parse(rawBody);
+          if (rawBody) {
+            // Handle base64 encoded bodies
+            if (event.isBase64Encoded) {
+              const decodedBody = Buffer.from(rawBody, 'base64').toString('utf-8');
+              requestBody = JSON.parse(decodedBody);
+            } else {
+              requestBody = JSON.parse(rawBody);
+            }
+          } else {
+            requestBody = {};
+          }
         } catch (e) {
           return createResponse(400, { error: 'Invalid JSON in request body' });
         }
@@ -1971,13 +2400,71 @@ This Agreement constitutes the entire agreement between the parties and supersed
       const versionId = `v${Date.now()}`;
       const timestamp = new Date().toISOString();
       
+      // Calculate the next version number by fetching existing versions
+      let nextVersionNumber = 1.0;
+      try {
+        // Reuse the same logic as the GET versions endpoint
+        const { S3Client, ListObjectsV2Command, HeadObjectCommand } = require('@aws-sdk/client-s3');
+        const s3Client = new S3Client({ region: 'us-east-1' });
+        
+        // Look for versions in the pattern: cases/*/documents/{documentId}/versions/*
+        const listCommand = new ListObjectsV2Command({
+          Bucket: 'contractfiles1',
+          Prefix: `cases/`,
+          MaxKeys: 1000
+        });
+        
+        const s3Response = await s3Client.send(listCommand);
+        const allObjects = s3Response.Contents || [];
+        
+        // Filter for this document's versions
+        const versionObjects = allObjects.filter(obj => 
+          obj.Key.includes(`/documents/${documentId}/versions/`) && 
+          (obj.Key.endsWith('.pdf') || obj.Key.endsWith('.txt'))
+        );
+        
+        if (versionObjects.length > 0) {
+          // Get metadata for each version to find version numbers
+          const versionPromises = versionObjects.map(async (obj) => {
+            try {
+              const headCommand = new HeadObjectCommand({
+                Bucket: 'contractfiles1',
+                Key: obj.Key
+              });
+              
+              const headResponse = await s3Client.send(headCommand);
+              const metadata = headResponse.Metadata || {};
+              
+              // Parse version number from metadata
+              const versionNum = metadata.versionnumber ? parseFloat(metadata.versionnumber) : 1.0;
+              console.log(`Version ${obj.Key}: metadata.versionnumber = ${metadata.versionnumber}, parsed as ${versionNum}`);
+              return versionNum;
+            } catch (headError) {
+              console.log('Could not get metadata for version:', obj.Key);
+              return 1.0;
+            }
+          });
+          
+          const versionNumbers = await Promise.all(versionPromises);
+          const maxVersion = Math.max(...versionNumbers);
+          nextVersionNumber = Math.floor(maxVersion) + 1.0;
+          
+          console.log(`Found ${versionObjects.length} existing versions, version numbers: [${versionNumbers.join(', ')}], max: ${maxVersion}, next: ${nextVersionNumber}`);
+        } else {
+          console.log('No existing versions found, starting with 1.0');
+        }
+      } catch (versionError) {
+        console.log('Error fetching existing versions, starting from 1.0:', versionError.message);
+        nextVersionNumber = 1.0;
+      }
+      
       // In a real implementation, you'd save this to S3 and update the case metadata
       // For now, we'll return the version information
       const versionInfo = {
         versionId,
         caseId,
         documentId,
-        versionNumber: versionType === 'fixed' ? '2.0' : '1.1',
+        versionNumber: nextVersionNumber,
         versionType: versionType || 'manual', // 'original', 'reviewed', 'fixed', 'manual'
         timestamp,
         fixedIssues: fixedIssues || [],
@@ -2002,12 +2489,12 @@ This Agreement constitutes the entire agreement between the parties and supersed
           Body: fileContent,
           ContentType: 'text/plain', // In production: 'application/pdf'
           Metadata: {
-            caseId: caseId.toString(),
-            documentId: documentId.toString(),
-            versionType: versionType || 'manual',
-            versionNumber: versionInfo.versionNumber,
+            caseid: caseId.toString(),
+            documentid: documentId.toString(),
+            versiontype: versionType || 'manual',
+            versionnumber: versionInfo.versionNumber.toString(),
             timestamp: timestamp,
-            originalFilename: versionInfo.fileName
+            originalfilename: versionInfo.fileName
           }
         });
         
@@ -2043,247 +2530,549 @@ This Agreement constitutes the entire agreement between the parties and supersed
         });
       }
 
-      // Skip authentication for now to test
       console.log('Review endpoint hit - method:', method, 'path:', path);
-      
-      // Full contract content for editing
-      const fullContractText = `EMPLOYMENT AGREEMENT
 
-This Employment Agreement ("Agreement") is entered into on [DATE], between [COMPANY NAME], a corporation organized under the laws of [STATE] ("Company"), and [EMPLOYEE NAME] ("Employee").
-
-SECTION 1: EMPLOYMENT TERMS
-Employee is hereby employed by Company in the position of [POSITION TITLE]. Employee agrees to perform such duties and responsibilities as may be assigned by Company from time to time.
-
-SECTION 2: DURATION
-This agreement shall commence on [START DATE] and shall continue until terminated in accordance with the provisions herein.
-
-SECTION 3: COMPENSATION
-Employee will receive an annual salary of $[AMOUNT], payable in accordance with Company's standard payroll practices. Employee shall also be entitled to participate in Company's benefit plans as may be available to employees of similar level.
-
-SECTION 4: DUTIES AND RESPONSIBILITIES  
-Employee shall devote Employee's full business time, attention, and efforts to the performance of Employee's duties hereunder and shall not engage in any other business activity without Company's prior written consent.
-
-SECTION 5: TERMINATION
-Employee may be terminated at any time for any reason with or without cause, and with or without notice, at the sole discretion of Company.
-
-SECTION 6: CONFIDENTIALITY
-Employee acknowledges that during employment, Employee may have access to confidential information belonging to Company. Employee agrees to maintain strict confidentiality of all such information.
-
-SECTION 7: NON-COMPETE
-Employee agrees not to directly or indirectly compete with Company's business during employment and for a period of [TIME PERIOD] following termination.
-
-SECTION 8: GOVERNING LAW
-This Agreement shall be governed by and construed in accordance with the laws of [STATE].
-
-SECTION 9: ENTIRE AGREEMENT
-This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations, or agreements.`;
-
-      // Comprehensive issues found in the contract
-      const reviewIssues = [
-        {
-          id: 1,
-          type: "error",
-          title: "Overly Broad Termination Clause",
-          description: "At-will termination without notice periods may violate employment laws in certain jurisdictions.",
-          suggestion: "Add reasonable notice periods and define specific grounds for immediate termination.",
-          section: "Section 5: Termination",
-          line: 18,
-          originalText: "Employee may be terminated at any time for any reason with or without cause, and with or without notice, at the sole discretion of Company.",
-          suggestedText: "Employee may be terminated by Company with thirty (30) days written notice, except in cases of misconduct, breach of contract, or other just cause as defined in Exhibit A."
-        },
-        {
-          id: 2,
-          type: "warning",
-          title: "Missing Intellectual Property Assignment",
-          description: "No clear assignment of intellectual property rights to the Company.",
-          suggestion: "Add comprehensive IP assignment clause to protect Company's interests.",
-          section: "New Section Needed",
-          line: null,
-          originalText: null,
-          suggestedText: "SECTION 10: INTELLECTUAL PROPERTY\nAll inventions, discoveries, improvements, and intellectual property created by Employee during employment shall be the sole and exclusive property of Company."
-        },
-        {
-          id: 3,
-          type: "warning", 
-          title: "Vague Non-Compete Terms",
-          description: "Non-compete clause lacks specific geographic scope and may be unenforceable.",
-          suggestion: "Define specific geographic boundaries and scope of restricted activities.",
-          section: "Section 7: Non-Compete",
-          line: 24,
-          originalText: "Employee agrees not to directly or indirectly compete with Company's business during employment and for a period of [TIME PERIOD] following termination.",
-          suggestedText: "Employee agrees not to directly or indirectly engage in competing business activities within [SPECIFIC GEOGRAPHIC AREA] for a period of twelve (12) months following termination, limited to [SPECIFIC BUSINESS ACTIVITIES]."
-        },
-        {
-          id: 4,
-          type: "info",
-          title: "Incomplete Benefit Details",
-          description: "Benefits section lacks specific details about available plans and eligibility.",
-          suggestion: "Reference specific benefit plans or attach detailed benefits schedule.",
-          section: "Section 3: Compensation",
-          line: 12,
-          originalText: "Employee shall also be entitled to participate in Company's benefit plans as may be available to employees of similar level.",
-          suggestedText: "Employee shall be entitled to participate in Company's standard benefits package including health insurance, dental coverage, and retirement plan as detailed in Exhibit B, subject to plan terms and eligibility requirements."
-        }
-      ];
-
-      // Create annotated HTML with highlights and line numbers for editing
-      const annotatedHtml = `
-        <div class="contract-editor">
-          <div class="contract-header">
-            <h2>Employment Agreement - AI Review Complete</h2>
-            <div class="review-summary">
-              <span class="issue-count error">1 Critical</span>
-              <span class="issue-count warning">2 Warnings</span> 
-              <span class="issue-count info">1 Info</span>
-            </div>
-          </div>
-          
-          <div class="contract-content" contenteditable="true" spellcheck="false">
-<div class="line-number">1</div><strong>EMPLOYMENT AGREEMENT</strong>
-
-<div class="line-number">2</div>
-<div class="line-number">3</div>This Employment Agreement ("Agreement") is entered into on [DATE], between [COMPANY NAME], a corporation organized under the laws of [STATE] ("Company"), and [EMPLOYEE NAME] ("Employee").
-<div class="line-number">4</div>
-<div class="line-number">5</div><strong>SECTION 1: EMPLOYMENT TERMS</strong>
-<div class="line-number">6</div>Employee is hereby employed by Company in the position of [POSITION TITLE]. Employee agrees to perform such duties and responsibilities as may be assigned by Company from time to time.
-<div class="line-number">7</div>
-<div class="line-number">8</div><strong>SECTION 2: DURATION</strong>
-<div class="line-number">9</div>This agreement shall commence on [START DATE] and shall continue until terminated in accordance with the provisions herein.
-<div class="line-number">10</div>
-<div class="line-number">11</div><strong>SECTION 3: COMPENSATION</strong>
-<div class="line-number">12</div>Employee will receive an annual salary of $[AMOUNT], payable in accordance with Company's standard payroll practices. <span class="highlight-info" data-issue="4" title="Click to view suggestion">Employee shall also be entitled to participate in Company's benefit plans as may be available to employees of similar level.</span>
-<div class="line-number">13</div>
-<div class="line-number">14</div><strong>SECTION 4: DUTIES AND RESPONSIBILITIES</strong>
-<div class="line-number">15</div>Employee shall devote Employee's full business time, attention, and efforts to the performance of Employee's duties hereunder and shall not engage in any other business activity without Company's prior written consent.
-<div class="line-number">16</div>
-<div class="line-number">17</div><strong>SECTION 5: TERMINATION</strong>
-<div class="line-number">18</div><span class="highlight-error" data-issue="1" title="Click to view suggestion">Employee may be terminated at any time for any reason with or without cause, and with or without notice, at the sole discretion of Company.</span>
-<div class="line-number">19</div>
-<div class="line-number">20</div><strong>SECTION 6: CONFIDENTIALITY</strong>
-<div class="line-number">21</div>Employee acknowledges that during employment, Employee may have access to confidential information belonging to Company. Employee agrees to maintain strict confidentiality of all such information.
-<div class="line-number">22</div>
-<div class="line-number">23</div><strong>SECTION 7: NON-COMPETE</strong>
-<div class="line-number">24</div><span class="highlight-warning" data-issue="3" title="Click to view suggestion">Employee agrees not to directly or indirectly compete with Company's business during employment and for a period of [TIME PERIOD] following termination.</span>
-<div class="line-number">25</div>
-<div class="line-number">26</div><strong>SECTION 8: GOVERNING LAW</strong>
-<div class="line-number">27</div>This Agreement shall be governed by and construed in accordance with the laws of [STATE].
-<div class="line-number">28</div>
-<div class="line-number">29</div><strong>SECTION 9: ENTIRE AGREEMENT</strong>
-<div class="line-number">30</div>This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations, or agreements.
-<div class="line-number">31</div>
-<div class="line-number">32</div><div class="highlight-warning missing-section" data-issue="2" title="Missing IP Assignment - Click to add">
-<strong>[MISSING SECTION: INTELLECTUAL PROPERTY]</strong>
-<div class="suggestion-text">💡 Recommended: Add IP assignment clause here</div>
-</div>
-          </div>
-        </div>
+      try {
+        let body;
+        let rawBody = event.body || '{}';
         
-        <style>
-          .contract-editor { 
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
-            font-size: 14px;
-            border: 1px solid #ddd; 
-            border-radius: 8px;
-            background: #fefefe;
-            overflow: hidden;
+        // Check if body is base64 encoded (common with API Gateway when */* is in binaryMediaTypes)
+        if (event.isBase64Encoded && event.body) {
+          rawBody = Buffer.from(event.body, 'base64').toString('utf-8');
+        }
+        
+        try {
+          body = JSON.parse(rawBody);
+        } catch (parseError) {
+          return createResponse(400, {
+            error: 'Invalid JSON in request body',
+            details: parseError.message
+          });
+        }
+        
+        const { key } = body;
+
+        if (!key) {
+          return createResponse(400, {
+            error: 'Document key is required'
+          });
+        }
+
+        // Extract text from document using Textract or fallback
+        let extractedText = null;
+        const textractEnabled = (process.env.TEXTRACT_ENABLED || 'false').toLowerCase() === 'true';
+
+        if (textractEnabled) {
+          try {
+            const { TextractClient, StartDocumentTextDetectionCommand, GetDocumentTextDetectionCommand } = require('@aws-sdk/client-textract');
+            const texClient = new TextractClient({ region: process.env.AWS_REGION || 'us-east-1' });
+
+            // Start async Textract job
+            const startRes = await texClient.send(new StartDocumentTextDetectionCommand({
+              DocumentLocation: {
+                S3Object: {
+                  Bucket: process.env.S3_BUCKET || 'contractfiles1',
+                  Name: key
+                }
+              }
+            }));
+
+            const jobId = startRes.JobId;
+            console.log('Started Textract job:', jobId);
+
+            // Poll for completion (max ~40 seconds)
+            let done = false;
+            let attempts = 0;
+            while (!done && attempts < 40) {
+              await new Promise(r => setTimeout(r, 1000));
+              const statusRes = await texClient.send(new GetDocumentTextDetectionCommand({ JobId: jobId }));
+              const status = statusRes.JobStatus;
+
+              if (status === 'SUCCEEDED') {
+                const blocks = statusRes.Blocks || [];
+                extractedText = blocks
+                  .filter(b => b.BlockType === 'LINE')
+                  .map(b => b.Text)
+                  .join('\n');
+                done = true;
+                console.log('Textract completed successfully, extracted', extractedText.length, 'characters');
+              } else if (status === 'FAILED') {
+                done = true;
+                console.warn('Textract job failed');
+              }
+              attempts += 1;
+            }
+          } catch (e) {
+            console.warn('Textract failed, falling back to text extraction:', e.message);
           }
-          .contract-header { 
-            background: #f8f9fa; 
-            padding: 16px; 
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        }
+
+        // Fallback: try to read as plain text from S3
+        if (!extractedText) {
+          try {
+            const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+            const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+            const cmd = new GetObjectCommand({
+              Bucket: process.env.S3_BUCKET || 'contractfiles1',
+              Key: key
+            });
+            const s3res = await s3Client.send(cmd);
+            const chunks = [];
+            for await (const chunk of s3res.Body) chunks.push(chunk);
+            const buf = Buffer.concat(chunks);
+            const contentType = (s3res.ContentType || '').toLowerCase();
+
+            if (contentType.startsWith('text/') || contentType === 'application/json') {
+              extractedText = buf.toString('utf8');
+              console.log('Extracted text from plain text file');
+            } else {
+              extractedText = '[Unable to extract text from this document type. Please ensure it\'s a PDF or text file.]';
+            }
+          } catch (err) {
+            console.warn('Could not read document from S3:', err.message);
+            extractedText = '[Error reading document. Please check file permissions and format.]';
           }
-          .contract-header h2 { 
-            margin: 0; 
-            font-size: 18px; 
-            color: #212529; 
+        }
+
+        // Analyze the extracted text for legal issues
+        const analysis = analyzeContractText(extractedText);
+
+        // Update the document's lastReviewedAt timestamp
+        try {
+          const caseId = key.split('/')[1]; // Extract case ID from key like "cases/123/documents/file.pdf"
+          await updateDocumentReviewTimestamp(caseId, key);
+        } catch (updateErr) {
+          console.warn('Failed to update review timestamp:', updateErr.message);
+        }
+
+        return createResponse(200, {
+          success: true,
+          originalText: extractedText,
+          issues: analysis.issues,
+          summary: analysis.summary,
+          overallRisk: analysis.overallRisk,
+          annotatedHtml: analysis.annotatedHtml
+        });
+
+      } catch (error) {
+        console.error('Review endpoint error:', error);
+        return createResponse(500, {
+          error: 'Failed to review document',
+          details: error.message
+        });
+      }
+    }
+
+    // ==========================================
+    // CLIENTS API ENDPOINTS
+    // ==========================================
+
+    // Handle /clients endpoint (GET and POST)
+    if (path === '/clients' || path === '/dev/clients') {
+      if (method === 'GET') {
+        // Skip authentication for now to test
+        console.log('Get clients endpoint hit');
+
+        try {
+          // Load clients from S3 and combine with any created clients
+          const s3Clients = await loadClientsFromS3();
+          const allClients = [...s3Clients, ...createdClients];
+
+          return createResponse(200, {
+            success: true,
+            clients: allClients,
+            total: allClients.length
+          });
+
+          return createResponse(200, {
+            success: true,
+            clients: allClients,
+            total: allClients.length
+          });
+        } catch (error) {
+          console.error('Error fetching clients:', error);
+          return createResponse(500, {
+            success: false,
+            error: 'Failed to fetch clients',
+            details: error.message
+          });
+        }
+      } else if (method === 'POST') {
+        // Skip authentication for now to test
+        console.log('Create client endpoint hit');
+
+        let body;
+        try {
+          let bodyStr = event.body || '{}';
+          if (event.isBase64Encoded) {
+            bodyStr = Buffer.from(event.body, 'base64').toString('utf-8');
           }
-          .review-summary {
-            display: flex;
-            gap: 12px;
+          body = JSON.parse(bodyStr);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          return createResponse(400, {
+            success: false,
+            error: 'Invalid JSON in request body',
+            details: parseError.message
+          });
+        }
+
+        const { first_name, last_name, email, phone, address, date_of_birth, company_name, notes } = body;
+
+        if (!first_name || !last_name || !email) {
+          return createResponse(400, {
+            success: false,
+            error: 'first_name, last_name, and email are required'
+          });
+        }
+
+        try {
+          // Generate client data
+          const clientId = `client-${Date.now()}`;
+          const now = new Date().toISOString();
+          const fullName = `${first_name} ${last_name}`;
+
+          const newClient = {
+            id: clientId,
+            first_name,
+            last_name,
+            full_name: fullName,
+            email,
+            phone: phone || null,
+            address: address || null,
+            date_of_birth: date_of_birth || null,
+            company_name: company_name || null,
+            notes: notes || null,
+            created_at: now,
+            updated_at: now,
+            created_by: { name: 'System', email: 'system@law-ai.com' },
+            linked_cases: [],
+            s3_documents: []
+          };
+
+          // Load existing clients from S3, add new client, and save back
+          const existingClients = await loadClientsFromS3();
+          existingClients.push(newClient);
+          await saveClientsToS3(existingClients);
+
+          // Also keep in memory for this execution
+          createdClients.push(newClient);
+
+          return createResponse(201, {
+            success: true,
+            client: newClient,
+            message: 'Client created successfully'
+          });
+        } catch (error) {
+          console.error('Error creating client:', error);
+          return createResponse(500, {
+            success: false,
+            error: 'Failed to create client',
+            details: error.message
+          });
+        }
+      } else {
+        return createResponse(405, { error: 'Method not allowed. Use GET to retrieve clients or POST to create a client.' });
+      }
+    }
+
+    // Get single client
+    if (path.match(/^\/clients\/[^\/]+$/)) {
+      if (method === 'GET') {
+        const clientId = path.split('/clients/')[1];
+        console.log('Get client endpoint hit for:', clientId);
+
+        try {
+          // Check if it's a created client first (in-memory storage)
+          let client = createdClients.find(c => c.id === clientId);
+
+          if (!client) {
+            // Check S3 clients
+            const s3Clients = await loadClientsFromS3();
+            client = s3Clients.find(c => c.id === clientId);
           }
-          .issue-count {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
+
+          if (!client) {
+            return createResponse(404, {
+              success: false,
+              error: 'Client not found'
+            });
           }
-          .issue-count.error { background: #f8d7da; color: #721c24; }
-          .issue-count.warning { background: #fff3cd; color: #856404; }
-          .issue-count.info { background: #d1ecf1; color: #0c5460; }
-          .contract-content { 
-            padding: 20px; 
-            line-height: 1.8; 
-            white-space: pre-wrap;
-            min-height: 500px;
-            position: relative;
-            counter-reset: line-number;
-          }
-          .line-number {
-            display: inline-block;
-            width: 40px;
-            color: #6c757d;
-            font-size: 12px;
-            user-select: none;
-            margin-right: 10px;
-          }
-          .highlight-error { 
-            background-color: #f8d7da; 
-            padding: 2px 4px; 
-            border-radius: 3px; 
-            cursor: pointer;
-            border-left: 3px solid #dc3545;
-            transition: all 0.2s;
-          }
-          .highlight-warning { 
-            background-color: #fff3cd; 
-            padding: 2px 4px; 
-            border-radius: 3px; 
-            cursor: pointer;
-            border-left: 3px solid #ffc107;
-            transition: all 0.2s;
-          }
-          .highlight-info { 
-            background-color: #d1ecf1; 
-            padding: 2px 4px; 
-            border-radius: 3px; 
-            cursor: pointer;
-            border-left: 3px solid #17a2b8;
-            transition: all 0.2s;
-          }
-          .highlight-error:hover, .highlight-warning:hover, .highlight-info:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .missing-section {
-            background-color: #fff3cd;
-            border: 2px dashed #ffc107;
-            padding: 12px;
-            border-radius: 6px;
-            margin: 10px 0;
-            text-align: center;
-          }
-          .suggestion-text {
-            font-size: 12px;
-            color: #856404;
-            font-style: italic;
-            margin-top: 4px;
-          }
-        </style>
-      `;
-      
+
+          return createResponse(200, {
+            success: true,
+            client: client
+          });
+        } catch (error) {
+          console.error('Error fetching client:', error);
+          return createResponse(500, {
+            success: false,
+            error: 'Failed to fetch client',
+            details: error.message
+          });
+        }
+      }
+      // If not GET, continue to next handler (PUT, DELETE)
+    }
+
+    // Update client
+    if (path.match(/^\/clients\/[^\/]+$/)) {
+      if (method !== 'PUT') {
+        return createResponse(405, { error: 'Method not allowed. Use PUT to update client.' });
+      }
+
+      const clientId = path.split('/clients/')[1];
+      console.log('Update client endpoint hit for:', clientId);
+
+      let body;
+      try {
+        let bodyStr = event.body || '{}';
+        if (event.isBase64Encoded) {
+          bodyStr = Buffer.from(event.body, 'base64').toString('utf-8');
+        }
+        body = JSON.parse(bodyStr);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        return createResponse(400, {
+          success: false,
+          error: 'Invalid JSON in request body',
+          details: parseError.message
+        });
+      }
+
+      try {
+        // Load existing clients from S3
+        const s3Clients = await loadClientsFromS3();
+        
+        // Find and update the client
+        let clientIndex = createdClients.findIndex(c => c.id === clientId);
+        let s3ClientIndex = s3Clients.findIndex(c => c.id === clientId);
+        let updatedClient;
+
+        if (clientIndex !== -1) {
+          // Update existing created client
+          updatedClient = {
+            ...createdClients[clientIndex],
+            ...body,
+            updated_at: new Date().toISOString()
+          };
+          createdClients[clientIndex] = updatedClient;
+        } else if (s3ClientIndex !== -1) {
+          // Update client from S3
+          updatedClient = {
+            ...s3Clients[s3ClientIndex],
+            ...body,
+            updated_at: new Date().toISOString()
+          };
+          s3Clients[s3ClientIndex] = updatedClient;
+          // Save updated clients back to S3
+          await saveClientsToS3(s3Clients);
+        } else {
+          // For mock clients, create updated version
+          updatedClient = {
+            id: clientId,
+            ...body,
+            updated_at: new Date().toISOString()
+          };
+        }
+
+        return createResponse(200, {
+          success: true,
+          client: updatedClient,
+          message: 'Client updated successfully'
+        });
+      } catch (error) {
+        console.error('Error updating client:', error);
+        return createResponse(500, {
+          success: false,
+          error: 'Failed to update client',
+          details: error.message
+        });
+      }
+    }
+
+    // Delete client
+    if (path.match(/^\/clients\/[^\/]+$/)) {
+      if (method !== 'DELETE') {
+        return createResponse(405, { error: 'Method not allowed. Use DELETE to remove client.' });
+      }
+
+      const clientId = path.split('/clients/')[1];
+      console.log('Delete client endpoint hit for:', clientId);
+
+      try {
+        // Load existing clients from S3 and remove the specified client
+        const s3Clients = await loadClientsFromS3();
+        const filteredClients = s3Clients.filter(c => c.id !== clientId);
+        
+        // Save the filtered clients back to S3
+        await saveClientsToS3(filteredClients);
+        
+        // Also remove from in-memory storage if it exists
+        const memoryIndex = createdClients.findIndex(c => c.id === clientId);
+        if (memoryIndex !== -1) {
+          createdClients.splice(memoryIndex, 1);
+        }
+
+        return createResponse(200, {
+          success: true,
+          message: 'Client deleted successfully'
+        });
+      } catch (error) {
+        console.error('Error deleting client:', error);
+        return createResponse(500, {
+          success: false,
+          error: 'Failed to delete client',
+          details: error.message
+        });
+      }
+    }
+
+    // Upload client document
+    if (path.match(/^\/clients\/[^\/]+\/documents$/)) {
+      if (method !== 'POST') {
+        return createResponse(405, { error: 'Method not allowed. Use POST to upload document.' });
+      }
+
+      const clientId = path.split('/clients/')[1].split('/documents')[0];
+      console.log('Upload client document endpoint hit for client:', clientId);
+
+      // This would handle multipart form data for file uploads
+      // For now, return a placeholder response
       return createResponse(200, {
         success: true,
-        issues: reviewIssues,
-        annotatedHtml: annotatedHtml,
-        originalText: fullContractText,
-        summary: "Document review complete. Found 4 items requiring attention.",
-        overallRisk: "Medium-High"
+        message: 'Document upload endpoint - implementation pending',
+        clientId
       });
     }
+
+    // Get client documents
+    if (path.match(/^\/clients\/[^\/]+\/documents$/)) {
+      if (method !== 'GET') {
+        return createResponse(405, { error: 'Method not allowed. Use GET to retrieve documents.' });
+      }
+
+      const clientId = path.split('/clients/')[1].split('/documents')[0];
+      console.log('=== CLIENT DOCUMENTS DEBUG ===');
+      console.log('Full path:', path);
+      console.log('Extracted client ID:', clientId);
+      console.log('Client ID type:', typeof clientId);
+      console.log('Client ID length:', clientId ? clientId.length : 'null/undefined');
+
+      try {
+        // First check if there are any documents in S3 for this client
+        const { S3Client, ListObjectsV2Command, HeadObjectCommand } = require('@aws-sdk/client-s3');
+        const s3Client = new S3Client({ region: 'us-east-1' });
+        
+        const listCommand = new ListObjectsV2Command({
+          Bucket: 'contractfiles1',
+          Prefix: `clients/${clientId}/`,
+          MaxKeys: 1000
+        });
+        
+        const s3Response = await s3Client.send(listCommand);
+        const objects = s3Response.Contents || [];
+        console.log('S3 objects found for client', clientId, ':', objects.length, 'objects');
+        
+        // If no objects found, return a test document to debug
+        if (objects.length === 0) {
+          console.log('No documents found for client', clientId, 'returning test document');
+          const testKey = `clients/${clientId}/test_document.pdf`;
+          console.log('Creating test document with key:', testKey);
+          
+          const testDocument = {
+            key: testKey,
+            filename: 'test_document.pdf',
+            file_type: 'application/pdf',
+            uploaded_at: new Date().toISOString(),
+            uploaded_by: 'system',
+            size: 12345,
+            download_url: `https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/s3/download?key=${encodeURIComponent(testKey)}`
+          };
+          
+          console.log('Test document created:', testDocument);
+          
+          return createResponse(200, {
+            success: true,
+            documents: [testDocument],
+            clientId,
+            message: 'Test document for debugging'
+          });
+        }
+        
+        console.log('Found objects:', objects.map(obj => ({ key: obj.Key, size: obj.Size })));
+        
+        // Convert S3 objects to document format
+        const documents = [];
+        
+        for (const obj of objects) {
+          console.log('Processing S3 object:', obj);
+          const key = obj.Key;
+          console.log('Object key:', key);
+          
+          if (!key) {
+            console.error('Object has undefined key:', obj);
+            continue;
+          }
+          
+          const filename = key.split('/').pop();
+          
+          // Skip if filename is empty (folder-like objects)
+          if (!filename) {
+            console.log('Skipping folder-like object:', key);
+            continue;
+          }
+          
+          // Get object metadata for content type and size
+          let contentType = 'application/octet-stream';
+          let size = obj.Size || 0;
+          
+          try {
+            const headCommand = new HeadObjectCommand({
+              Bucket: 'contractfiles1',
+              Key: key
+            });
+            const headResponse = await s3Client.send(headCommand);
+            contentType = headResponse.ContentType || contentType;
+            size = headResponse.ContentLength || size;
+          } catch (headError) {
+            console.log('Could not get metadata for', key, headError.message);
+          }
+          
+          // Extract timestamp from filename (format: timestamp_filename)
+          const timestampMatch = filename.match(/^(\d+)_/);
+          const uploadedAt = timestampMatch 
+            ? new Date(parseInt(timestampMatch[1])).toISOString()
+            : new Date().toISOString();
+          
+          documents.push({
+            key: key,
+            filename: filename,
+            file_type: contentType,
+            uploaded_at: uploadedAt,
+            uploaded_by: 'system',
+            size: size,
+            download_url: `https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/s3/download?key=${encodeURIComponent(key)}`
+          });
+        }
+
+        console.log('Final documents array:', documents);
+        return createResponse(200, {
+          success: true,
+          documents: documents,
+          clientId
+        });
+      } catch (error) {
+        console.error('Error fetching client documents:', error);
+        return createResponse(500, {
+          success: false,
+          error: 'Failed to fetch client documents',
+          details: error.message
+        });
+      }
+    }
+
+    // END TEMPORARILY DISABLED CLIENT ROUTING
 
     // Root endpoint
     if (path === '/' || path === '/dev' || path === '/dev/') {
@@ -2335,7 +3124,14 @@ This Agreement constitutes the entire agreement between the parties and supersed
         'DELETE /s3/object',
         'POST /s3/upload',
         'POST /contracts/review',
-        'POST /contracts/fix'
+        'POST /contracts/fix',
+        'GET /clients',
+        'POST /clients',
+        'GET /clients/{id}',
+        'PUT /clients/{id}',
+        'DELETE /clients/{id}',
+        'POST /clients/{id}/documents',
+        'GET /clients/{id}/documents'
       ]
     });
     

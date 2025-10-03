@@ -21,7 +21,7 @@
         "COGNITO_CLIENT_SECRET": "152qllbnetkfmtfsec80jb5rlfm3cjg6m5hh8pqndt6e8q4rjgs",
         "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
         "S3_BUCKET_NAME": "contractfiles1",
-        "TEXTRACT_ENABLED": "false",
+        "TEXTRACT_ENABLED": "true",
         "BEDROCK_ENABLED": "false",
         "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
         "COGNITO_AUTO_UPDATE_CLIENT": "false",
@@ -190,7 +190,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
-                "S3Key": "serverless/lawai-serverless/dev/1759286028056-2025-10-01T02:33:48.056Z/lawai-serverless.zip"
+                "S3Key": "serverless/lawai-serverless/dev/1759460713507-2025-10-03T03:05:13.507Z/lawai-serverless.zip"
               },
               "Handler": "lambda-auth.handler",
               "Runtime": "nodejs18.x",
@@ -203,7 +203,7 @@
                   "COGNITO_CLIENT_SECRET": "152qllbnetkfmtfsec80jb5rlfm3cjg6m5hh8pqndt6e8q4rjgs",
                   "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
                   "S3_BUCKET_NAME": "contractfiles1",
-                  "TEXTRACT_ENABLED": "false",
+                  "TEXTRACT_ENABLED": "true",
                   "BEDROCK_ENABLED": "false",
                   "BEDROCK_MODEL": "anthropic.claude-3-sonnet-20240229-v1:0",
                   "COGNITO_AUTO_UPDATE_CLIENT": "false",
@@ -221,14 +221,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersionJTn2OWIc9dHyEY1HIQ3UsnY1DwTSJawG1mQ70WWUw": {
+          "ApiLambdaVersionpXL1WiKhMgXXYIDWkuW3P4hNB9MX0JlXX0RshtYJ4c": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "FH1JHtVNd4SoMg83FkM352+4sVm6tKhSrn3zs6oJt90="
+              "CodeSha256": "8rWkrKr84O/t3WIHHcAAeS3/o7dXKY9JqUBAcjkBuKc="
             }
           },
           "ApiGatewayRestApi": {
@@ -451,7 +451,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1759286022260": {
+          "ApiGatewayDeployment1759460705841": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -514,7 +514,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersionJTn2OWIc9dHyEY1HIQ3UsnY1DwTSJawG1mQ70WWUw"
+              "Ref": "ApiLambdaVersionpXL1WiKhMgXXYIDWkuW3P4hNB9MX0JlXX0RshtYJ4c"
             },
             "Export": {
               "Name": "sls-lawai-serverless-dev-ApiLambdaFunctionQualifiedArn"
@@ -621,7 +621,7 @@
         "memory": 1024,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ApiLambdaVersionJTn2OWIc9dHyEY1HIQ3UsnY1DwTSJawG1mQ70WWUw"
+        "versionLogicalId": "ApiLambdaVersionpXL1WiKhMgXXYIDWkuW3P4hNB9MX0JlXX0RshtYJ4c"
       }
     },
     "configValidationMode": "warn",
@@ -658,7 +658,7 @@
         "artifactsS3KeyDirname": "serverless/lawai-serverless/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-ef1c86d9-5dce",
         "artifact": "/Users/josephesfandiari/Lawyer App/law-ai/server/.serverless/lawai-serverless.zip",
-        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759286028056-2025-10-01T02:33:48.056Z"
+        "artifactDirectoryName": "serverless/lawai-serverless/dev/1759460713507-2025-10-03T03:05:13.507Z"
       }
     },
     "appId": null,
@@ -667,7 +667,7 @@
     "artifact": "/Users/josephesfandiari/Lawyer App/law-ai/server/.serverless/lawai-serverless.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/lawai-serverless/dev/1759286028056-2025-10-01T02:33:48.056Z",
+    "artifactDirectoryName": "serverless/lawai-serverless/dev/1759460713507-2025-10-03T03:05:13.507Z",
     "artifact": "lawai-serverless.zip"
   }
 }

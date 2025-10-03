@@ -200,10 +200,6 @@ const CasesPage = () => {
                     </span>
                   </div>
                 </div>
-                {/* Delete button at the bottom of the card */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
-                  <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteCase(caseItem.id); }} title="Delete case">Delete</button>
-                </div>
               </div>
             ))}
           </div>
