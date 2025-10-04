@@ -975,6 +975,36 @@ a:hover {
   color: #92400e;
 }
 
+.status-badge.prospect {
+  background: #f0f9ff;
+  color: #0c4a6e;
+}
+
+.status-badge.on-hold {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.closed {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.status-badge.pending-intake {
+  background: #fdf4ff;
+  color: #7c3aed;
+}
+
+.status-badge.billing-issue {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.status-badge.vip-priority {
+  background: #fef7ed;
+  color: #9a3412;
+}
+
 .file-icon {
   display: inline-flex;
   align-items: center;

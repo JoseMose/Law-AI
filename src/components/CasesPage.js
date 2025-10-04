@@ -8,10 +8,24 @@ const CasesPage = () => {
   const [newCaseTitle, setNewCaseTitle] = useState('');
   const [newCaseDescription, setNewCaseDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [deletingCaseId, setDeletingCaseId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadCases();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown')) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadCases = async () => {
@@ -20,7 +34,7 @@ const CasesPage = () => {
       const response = await fetch('https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases', {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
+          'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`,
         }
       });
       if (response.ok) {
@@ -54,7 +68,7 @@ const CasesPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
+          'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`,
         },
         body: JSON.stringify({
           title: newCaseTitle.trim(),
@@ -89,18 +103,22 @@ const CasesPage = () => {
 
   const handleDeleteCase = async (caseId) => {
     if (!window.confirm('Delete this case? This action cannot be undone.')) return;
+    
+    setDeletingCaseId(caseId);
     try {
       const response = await fetch(`https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases/${caseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
+          'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`,
         }
       });
 
       if (response.ok) {
         // Remove from local state
         setCases(prev => prev.filter(c => c.id !== caseId));
+        // Close dropdown after successful deletion
+        setOpenDropdown(null);
       } else {
         const text = await response.text();
         console.error('Failed to delete case:', response.status, text);
@@ -109,6 +127,8 @@ const CasesPage = () => {
     } catch (e) {
       console.error('Error deleting case:', e);
       alert('Error deleting case');
+    } finally {
+      setDeletingCaseId(null);
     }
   };
 
@@ -182,22 +202,109 @@ const CasesPage = () => {
           <div className="grid grid-cols-1 gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
             {cases.map((caseItem) => (
               <div key={caseItem.id} className="card">
-                <div className="card-body cursor-pointer" onClick={() => navigate(`/case/${caseItem.id}`)}>
+                <div className="card-body">
+                  {/* Case Header with Actions */}
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
+                    <div className="flex-1 cursor-pointer" onClick={() => navigate(`/case/${caseItem.id}`)}>
                       <h3 className="card-title">{caseItem.title}</h3>
                       {caseItem.description && (
                         <p className="card-subtitle">{caseItem.description}</p>
                       )}
                     </div>
-                    {getStatusBadge(caseItem.status)}
+                    <div className="flex items-center gap-2 ml-4">
+                      {getStatusBadge(caseItem.status)}
+                      <div className="dropdown">
+                        <button 
+                          className="btn btn-sm btn-outline dropdown-toggle"
+                          onClick={() => setOpenDropdown(openDropdown === caseItem.id ? null : caseItem.id)}
+                        >
+                          ⋯
+                        </button>
+                        {openDropdown === caseItem.id && (
+                          <div className="dropdown-menu">
+                            <button 
+                              className="dropdown-item"
+                              onClick={() => {
+                                navigate(`/case/${caseItem.id}`);
+                                setOpenDropdown(null);
+                              }}
+                            >
+                              📂 Open Case
+                            </button>
+                            <button 
+                              className="dropdown-item"
+                              onClick={() => {
+                                navigate(`/legal-research?case=${caseItem.id}`);
+                                setOpenDropdown(null);
+                              }}
+                            >
+                              🔍 Research
+                            </button>
+                            <button 
+                              className="dropdown-item"
+                              onClick={() => {
+                                navigate(`/case/${caseItem.id}?tab=research`);
+                                setOpenDropdown(null);
+                              }}
+                            >
+                              📋 Add Case Law
+                            </button>
+                            <div className="dropdown-divider"></div>
+                            <button 
+                              className="dropdown-item text-red-600"
+                              onClick={() => {
+                                handleDeleteCase(caseItem.id);
+                                setOpenDropdown(null);
+                              }}
+                              disabled={deletingCaseId === caseItem.id}
+                            >
+                              {deletingCaseId === caseItem.id ? (
+                                <>
+                                  <div className="loading-spinner inline-block w-3 h-3 mr-2"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                '🗑️ Delete'
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Case Stats */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{caseItem.documentCount || 0}</div>
+                      <div className="text-sm text-gray-600">Documents</div>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{caseItem.caseLawCount || 0}</div>
+                      <div className="text-sm text-gray-600">Case Law</div>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex gap-2 mb-4">
+                    <button 
+                      className="btn btn-sm btn-outline flex-1"
+                      onClick={() => navigate(`/case/${caseItem.id}`)}
+                    >
+                      � View Details
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-outline flex-1"
+                      onClick={() => navigate(`/legal-research?case=${caseItem.id}`)}
+                    >
+                      🔍 Research
+                    </button>
+                  </div>
+
+                  {/* Case Info */}
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <span>Created {formatDate(caseItem.createdAt)}</span>
-                    <span className="flex items-center gap-2">
-                      <span>📄</span>
-                      {caseItem.documentCount || 0} docs
-                    </span>
+                    <span>Last updated {formatDate(caseItem.updatedAt || caseItem.createdAt)}</span>
                   </div>
                 </div>
               </div>

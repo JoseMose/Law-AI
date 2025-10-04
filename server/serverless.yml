@@ -13,14 +13,15 @@ provider:
       - '*/*'
   
   environment:
-    COGNITO_CLIENT_ID: 1p3ks3hsp9a9p2jogk8h9km9
-    COGNITO_CLIENT_SECRET: 152qllbnetkfmtfsec80jb5rlfm3cjg6m5hh8pqndt6e8q4rjgs
-    COGNITO_USER_POOL_ID: us-east-1_1kLOdae9J
-    S3_BUCKET_NAME: contractfiles1
-    TEXTRACT_ENABLED: true
-    BEDROCK_ENABLED: false
-    BEDROCK_MODEL: anthropic.claude-3-sonnet-20240229-v1:0
-    COGNITO_AUTO_UPDATE_CLIENT: false
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
+    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
+    TEXTRACT_ENABLED: ${env:TEXTRACT_ENABLED}
+    BEDROCK_ENABLED: ${env:BEDROCK_ENABLED}
+    BEDROCK_MODEL: ${env:BEDROCK_MODEL}
+    BEDROCK_API_KEY: ${env:BEDROCK_API_KEY}
+    COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT}
   
   iamRoleStatements:
     - Effect: Allow

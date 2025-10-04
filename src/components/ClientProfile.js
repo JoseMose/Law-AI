@@ -28,6 +28,43 @@ const ClientProfile = () => {
     }
     return { name: 'Unknown User', email: 'unknown@example.com' };
   };
+
+  // Helper functions for status display
+  const getStatusClass = (status) => {
+    const statusMap = {
+      'prospect': 'prospect',
+      'active': 'active',
+      'on-hold': 'on-hold',
+      'closed': 'closed',
+      'pending-intake': 'pending-intake',
+      'billing-issue': 'billing-issue',
+      'vip-priority': 'vip-priority'
+    };
+    return statusMap[status] || 'active';
+  };
+
+  const getStatusLabel = (status) => {
+    const labelMap = {
+      'prospect': 'Prospect',
+      'active': 'Active',
+      'on-hold': 'On Hold',
+      'closed': 'Closed',
+      'pending-intake': 'Pending Intake',
+      'billing-issue': 'Billing Issue',
+      'vip-priority': 'VIP / Priority'
+    };
+    return labelMap[status] || 'Active';
+  };
+
+  const statusOptions = [
+    { value: 'prospect', label: 'Prospect – someone who might become a client but hasn\'t signed yet.' },
+    { value: 'active', label: 'Active – currently an ongoing client with open cases.' },
+    { value: 'on-hold', label: 'On Hold – temporarily inactive (maybe paused case/work).' },
+    { value: 'closed', label: 'Closed – relationship finished, no active cases.' },
+    { value: 'pending-intake', label: 'Pending Intake – client signed up but hasn\'t been fully onboarded yet.' },
+    { value: 'billing-issue', label: 'Billing Issue – client has outstanding invoices or disputes.' },
+    { value: 'vip-priority', label: 'VIP / Priority – high-value or priority client.' }
+  ];
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
@@ -114,6 +151,7 @@ const ClientProfile = () => {
         email: client.email || '',
         phone: client.phone || '',
         company_name: client.company_name || '',
+        status: client.status || 'active',
         address: client.address || {
           street: '',
           city: '',
@@ -239,6 +277,39 @@ const ClientProfile = () => {
       }
     } catch (error) {
       console.error('Error updating client:', error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleStatusChange = async (e) => {
+    const newStatus = e.target.value;
+    setUpdating(true);
+
+    try {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE}/clients/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...client,
+          status: newStatus,
+          last_updated_by: getCurrentUser(),
+          last_updated_at: new Date().toISOString()
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setClient(data.client);
+      } else {
+        console.error('Failed to update client status');
+      }
+    } catch (error) {
+      console.error('Error updating client status:', error);
     } finally {
       setUpdating(false);
     }
@@ -382,7 +453,7 @@ const ClientProfile = () => {
     <div className="container">
       {/* Header */}
       <div className="page-header mb-6 mt-8">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <div className="avatar avatar-xl">
             <span className="avatar-initials">
               {client.first_name[0]}{client.last_name[0]}
@@ -392,8 +463,8 @@ const ClientProfile = () => {
             <h1 className="page-title">{client.full_name}</h1>
             <p className="page-description">{client.company_name || 'Individual Client'}</p>
             <div className="flex items-center gap-4 mt-2">
-              <span className={`status-badge ${client.status === 'active' ? 'active' : 'inactive'}`}>
-                {client.status || 'active'}
+              <span className={`status-badge ${getStatusClass(client.status)}`}>
+                {getStatusLabel(client.status)}
               </span>
               <span className="text-sm text-muted">
                 Client since {new Date(client.created_at).toLocaleDateString()}
@@ -475,6 +546,29 @@ const ClientProfile = () => {
                         {client.date_of_birth && (
                           <p><span className="font-medium">Date of Birth:</span> {new Date(client.date_of_birth).toLocaleDateString()}</p>
                         )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Client Status</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="form-label">Status</label>
+                          <select
+                            value={client.status || 'active'}
+                            onChange={handleStatusChange}
+                            className="form-select"
+                          >
+                            {statusOptions.map(option => (
+                              <option key={option.value} value={option.value}>
+                                {option.label.split(' – ')[0]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {statusOptions.find(option => option.value === (client.status || 'active'))?.label.split(' – ')[1]}
+                        </div>
                       </div>
                     </div>
 
@@ -603,6 +697,24 @@ const ClientProfile = () => {
                         className="form-input"
                         placeholder="Country"
                       />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label">Client Status</label>
+                    <select
+                      value={editForm.status || 'active'}
+                      onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                      className="form-select"
+                    >
+                      {statusOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label.split(' – ')[0]}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {statusOptions.find(option => option.value === (editForm.status || 'active'))?.label.split(' – ')[1]}
                     </div>
                   </div>
                 </form>

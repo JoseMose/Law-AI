@@ -25,6 +25,33 @@ const ClientsPage = () => {
     }
   });
 
+  // Helper functions for status display
+  const getStatusClass = (status) => {
+    const statusMap = {
+      'prospect': 'prospect',
+      'active': 'active',
+      'on-hold': 'on-hold',
+      'closed': 'closed',
+      'pending-intake': 'pending-intake',
+      'billing-issue': 'billing-issue',
+      'vip-priority': 'vip-priority'
+    };
+    return statusMap[status] || 'active';
+  };
+
+  const getStatusLabel = (status) => {
+    const labelMap = {
+      'prospect': 'Prospect',
+      'active': 'Active',
+      'on-hold': 'On Hold',
+      'closed': 'Closed',
+      'pending-intake': 'Pending Intake',
+      'billing-issue': 'Billing Issue',
+      'vip-priority': 'VIP / Priority'
+    };
+    return labelMap[status] || 'Active';
+  };
+
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
@@ -168,7 +195,7 @@ const ClientsPage = () => {
                 {filteredClients.map((client) => (
                   <tr key={client.id}>
                     <td>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-6">
                         <div className="avatar avatar-sm">
                           <span className="avatar-initials">
                             {client.first_name[0]}{client.last_name[0]}
@@ -184,8 +211,8 @@ const ClientsPage = () => {
                     <td>{client.company || '-'}</td>
                     <td>{client.phone || '-'}</td>
                     <td>
-                      <span className={`status-badge ${client.status === 'active' ? 'active' : 'inactive'}`}>
-                        {client.status}
+                      <span className={`status-badge ${getStatusClass(client.status)}`}>
+                        {getStatusLabel(client.status)}
                       </span>
                     </td>
                     <td>

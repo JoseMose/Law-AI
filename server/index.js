@@ -882,7 +882,7 @@ The company disclaims liability without limitation. The term is indefinite and a
         // dynamic import so server doesn't crash if package missing
         const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
         const br = new BedrockRuntimeClient({ region: S3_REGION });
-        const modelId = process.env.BEDROCK_MODEL || 'amazon.titan-2024';
+        const modelId = process.env.BEDROCK_MODEL || 'anthropic.claude-3-opus-20240229-v1:0';
         const prompt = `Analyze the following contract and return a JSON array of issues with keys: id, type, snippet, suggestion.\n\n${extractedText}`;
         const invokeCmd = new InvokeModelCommand({ modelId, body: Buffer.from(prompt), contentType: 'text/plain' });
         const out = await br.send(invokeCmd);
@@ -1061,7 +1061,7 @@ app.post('/contracts/fix', authenticateToken, express.json(), async (req, res) =
       try {
         const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
         const br = new BedrockRuntimeClient({ region: S3_REGION });
-        const modelId = process.env.BEDROCK_MODEL || 'amazon.titan-2024';
+        const modelId = process.env.BEDROCK_MODEL || 'anthropic.claude-3-opus-20240229-v1:0';
         const prompt = `Produce a corrected version of the following contract text. Keep legal meaning but make suggestions to fix issues. Return only the corrected text.\n\n${base}`;
         const invokeCmd = new InvokeModelCommand({ modelId, body: Buffer.from(prompt), contentType: 'text/plain' });
         const out = await br.send(invokeCmd);

@@ -15,6 +15,7 @@ import ClientProfile from './components/ClientProfile';
 import BillingPage from './components/BillingPage';
 import SettingsPage from './components/SettingsPage';
 import LegalResearchPage from './components/LegalResearchPage';
+import CaseLawDetailPage from './components/CaseLawDetailPage';
 import Navigation from './components/Navigation';
 import './styles/modern.css';
 import './styles/landing.css';
@@ -121,6 +122,12 @@ function AppContent() {
           <Route path="/legal-research" element={
             <ProtectedRoute>
               <LegalResearchPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/legal-research/case/:caseId" element={
+            <ProtectedRoute>
+              <CaseLawDetailPage />
             </ProtectedRoute>
           } />
         </Routes>
