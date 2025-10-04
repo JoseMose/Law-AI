@@ -1,30 +1,109 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /server/node_modules
 /.pnp
 .pnp.js
+.pnp.loader.mjs
 
-# testing
+# Testing
 /coverage
+.nyc_output
 
-# production
+# Production builds
 /build
-
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+/dist
+.next
+out/
 
 # Environment files (IMPORTANT: contains secrets)
-.env
+/.env
+/.env.local
+/.env.development.local
+/.env.test.local
+/.env.production.local
 server/.env
+server/.env.*
 *.env
+!.env.example
 
+# Serverless Framework
+.serverless/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.serverless/
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# AWS
+.aws/
+sam-cli/
+
+# Local development
+.env.local
+.env.development
+.env.test
