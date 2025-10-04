@@ -1145,7 +1145,12 @@ export default function CaseView() {
         </div>
 
         {/* Documents Section with Versions Sidebar */}
-        <div className="flex gap-6">
+        <div 
+          className="flex gap-6 transition-all duration-300 ease-in-out"
+          style={{
+            transform: showingVersionsFor ? 'translateX(-200px)' : 'translateX(0)',
+          }}
+        >
           {/* Documents List */}
           <div className="flex-1">
             <div className="card">
@@ -1375,15 +1380,20 @@ export default function CaseView() {
             </div>
           </div> {/* closing flex-1 case content area */}
 
-          {/* Versions Sidebar - Only appears when versions are being shown */}
+          {/* Versions Sidebar - Animated slide in from right */}
           {showingVersionsFor && (
-            <div style={{
-              width: '400px',
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #e5e7eb',
-              borderRadius: 8,
-              overflow: 'hidden'
-            }}>
+            <div 
+              className="transition-all duration-300 ease-in-out"
+              style={{
+                width: '400px',
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #e5e7eb',
+                borderRadius: 8,
+                overflow: 'hidden',
+                transform: showingVersionsFor ? 'translateX(0)' : 'translateX(100%)',
+                opacity: showingVersionsFor ? 1 : 0,
+              }}
+            >
               <div style={{ padding: '20px' }}>
                 <h4>📋 {showingVersionsFor.filename}</h4>
                 <button 
@@ -1605,12 +1615,10 @@ export default function CaseView() {
               </div>
             )}
           </div>
-            </div>
           )}
         </div> {/* closing flex gap-6 */}
       </div> {/* closing main-content */}
     </div> {/* closing container */}
-    </div>
     </>
   );
 }

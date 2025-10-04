@@ -72,7 +72,7 @@ function CaseLawResearch() {
   const [caseType, setCaseType] = useState('all');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [recentSearches, setRecentSearches] = useState([]);
+  // recentSearches removed (unused) to satisfy ESLint
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -103,17 +103,7 @@ function CaseLawResearch() {
 
       const data = await response.json();
       setSearchResults(data.results || []);
-
-      const newSearch = {
-        id: Date.now().toString(),
-        query: queryText,
-        searchMode,
-        jurisdiction,
-        dateRange,
-        caseType,
-        timestamp: new Date().toISOString()
-      };
-      setRecentSearches(prev => [newSearch, ...prev.slice(0, 4)]);
+      // recent searches history intentionally not persisted in this view
 
     } catch (error) {
       console.error('Search error:', error);

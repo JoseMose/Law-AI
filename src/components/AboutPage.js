@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import '../styles/about.css';
 
 const AboutPage = () => {
@@ -8,30 +9,44 @@ const AboutPage = () => {
   return (
     <div className="about-page">
       {/* Navigation */}
-      <nav className="navbar about-nav">
+      <nav className="navbar landing-nav">
         <div className="navbar-container">
-          <div className="navbar-brand about-logo" onClick={() => navigate('/')}>
-            Law‑AI
-          </div>
+          <div className="navbar-brand landing-logo">Law‑AI</div>
           <ul className="navbar-nav">
-            <li><button onClick={() => navigate('/')} className="nav-button">Home</button></li>
-            <li><button onClick={() => navigate('/#features')} className="nav-button">Features</button></li>
-            <li><button onClick={() => navigate('/#pricing')} className="nav-button">Pricing</button></li>
-            <li><button onClick={() => navigate('/about')} className="nav-button active">About</button></li>
+            <li><button onClick={() => navigate('/#features')} className="navbar-link">Features</button></li>
+            <li><button onClick={() => navigate('/#benefits')} className="navbar-link">Benefits</button></li>
+            <li><button onClick={() => navigate('/#pricing')} className="navbar-link">Pricing</button></li>
+            <li><button onClick={() => navigate('/about')} className="navbar-link active">About</button></li>
+            <li><button onClick={() => navigate('/#contact')} className="navbar-link">Contact</button></li>
           </ul>
           <div className="navbar-actions">
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/signin')}>
+            <motion.button 
+              className="btn btn-ghost btn-sm" 
+              onClick={() => navigate('/signin')}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
               Sign In
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/signin')}>
+            </motion.button>
+            <motion.button 
+              className="btn btn-primary btn-sm" 
+              onClick={() => navigate('/signin')}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
               Get Started
-            </button>
+            </motion.button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="about-hero">
+      <motion.section 
+        className="about-hero"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, ease: "easeInOut" }}
+      >
         <div className="container">
           <div className="about-hero-content">
             <h1 className="about-hero-title">
@@ -44,10 +59,16 @@ const AboutPage = () => {
             </p>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Mission Section */}
-      <section className="about-mission">
+      <motion.section 
+        className="about-mission"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="mission-grid">
             <div className="mission-content">
@@ -79,17 +100,30 @@ const AboutPage = () => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Values Section */}
-      <section className="about-values">
+      <motion.section 
+        className="about-values"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="section-header">
             <div className="section-badge">Our Values</div>
             <h2 className="section-title">What Drives Us</h2>
           </div>
           <div className="values-grid">
-            <div className="value-card">
+            <motion.div 
+              className="value-card"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="value-icon">🔒</div>
               <h3 className="value-title">Security First</h3>
               <p className="value-description">
@@ -97,8 +131,15 @@ const AboutPage = () => {
                 is built with enterprise-grade security, end-to-end encryption, and 
                 strict compliance with legal industry standards.
               </p>
-            </div>
-            <div className="value-card">
+            </motion.div>
+            <motion.div 
+              className="value-card"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.2 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="value-icon">🎯</div>
               <h3 className="value-title">Precision & Accuracy</h3>
               <p className="value-description">
@@ -106,8 +147,15 @@ const AboutPage = () => {
                 of legal documents and continuously refined to provide the highest 
                 accuracy in contract analysis and document review.
               </p>
-            </div>
-            <div className="value-card">
+            </motion.div>
+            <motion.div 
+              className="value-card"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.3 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="value-icon">🤝</div>
               <h3 className="value-title">Human-Centered Design</h3>
               <p className="value-description">
@@ -115,8 +163,15 @@ const AboutPage = () => {
                 Every feature is designed with the legal professional's workflow and 
                 expertise at the center of the experience.
               </p>
-            </div>
-            <div className="value-card">
+            </motion.div>
+            <motion.div 
+              className="value-card"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.4 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="value-icon">⚡</div>
               <h3 className="value-title">Efficiency & Speed</h3>
               <p className="value-description">
@@ -124,13 +179,19 @@ const AboutPage = () => {
                 faster than traditional methods, allowing lawyers to focus on 
                 high-value strategic work.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Team Section */}
-      <section className="about-team">
+      <motion.section 
+        className="about-team"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="section-header">
             <div className="section-badge">Our Team</div>
@@ -141,7 +202,14 @@ const AboutPage = () => {
             </p>
           </div>
           <div className="team-grid">
-            <div className="team-member">
+            <motion.div 
+              className="team-member"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="member-avatar">👨‍💼</div>
               <h3 className="member-name">Joseph Esfandiari</h3>
               <p className="member-title">Founder & Creator</p>
@@ -150,8 +218,15 @@ const AboutPage = () => {
                 a comprehensive, all-in-one legal practice management platform. Combines deep 
                 understanding of legal workflows with modern technology solutions.
               </p>
-            </div>
-            <div className="team-member">
+            </motion.div>
+            <motion.div 
+              className="team-member"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.2 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="member-avatar">👨‍💻</div>
               <h3 className="member-name">Development Team</h3>
               <p className="member-title">Technical Implementation</p>
@@ -160,8 +235,15 @@ const AboutPage = () => {
                 and legal compliance. Focused on building enterprise-grade solutions that 
                 meet the demanding security and performance requirements of legal practice.
               </p>
-            </div>
-            <div className="team-member">
+            </motion.div>
+            <motion.div 
+              className="team-member"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.3 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="member-avatar">👩‍⚖️</div>
               <h3 className="member-name">Legal Advisory Board</h3>
               <p className="member-title">Industry Expertise</p>
@@ -170,8 +252,15 @@ const AboutPage = () => {
                 and best practices. Ensures the platform meets the real-world needs of 
                 modern legal practices while maintaining the highest standards.
               </p>
-            </div>
-            <div className="team-member">
+            </motion.div>
+            <motion.div 
+              className="team-member"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.4 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="member-avatar">�️</div>
               <h3 className="member-name">Security & Compliance</h3>
               <p className="member-title">Data Protection</p>
@@ -180,20 +269,32 @@ const AboutPage = () => {
                 and enterprise-grade security. Built on AWS infrastructure with comprehensive 
                 audit trails and access controls for complete data protection.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Story Section */}
-      <section className="about-story">
+      <motion.section 
+        className="about-story"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="story-grid">
             <div className="story-content">
               <div className="section-badge">Our Story</div>
               <h2 className="section-title">From Vision to Reality</h2>
               <div className="story-timeline">
-                <div className="timeline-item">
+                <motion.div 
+                  className="timeline-item"
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.1 }}
+                  viewport={{ once: true }}
+                >
                   <div className="timeline-year">2024</div>
                   <div className="timeline-content">
                     <h4>The Vision</h4>
@@ -203,8 +304,14 @@ const AboutPage = () => {
                       billing, and client communication. There had to be a better way.
                     </p>
                   </div>
-                </div>
-                <div className="timeline-item">
+                </motion.div>
+                <motion.div 
+                  className="timeline-item"
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.2 }}
+                  viewport={{ once: true }}
+                >
                   <div className="timeline-year">Early 2025</div>
                   <div className="timeline-content">
                     <h4>The Development</h4>
@@ -214,8 +321,14 @@ const AboutPage = () => {
                       secure AWS infrastructure with enterprise-grade compliance.
                     </p>
                   </div>
-                </div>
-                <div className="timeline-item">
+                </motion.div>
+                <motion.div 
+                  className="timeline-item"
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.3 }}
+                  viewport={{ once: true }}
+                >
                   <div className="timeline-year">Mid 2025</div>
                   <div className="timeline-content">
                     <h4>The Platform</h4>
@@ -225,8 +338,14 @@ const AboutPage = () => {
                       Billing, and Security & Compliance features.
                     </p>
                   </div>
-                </div>
-                <div className="timeline-item">
+                </motion.div>
+                <motion.div 
+                  className="timeline-item"
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
                   <div className="timeline-year">Today</div>
                   <div className="timeline-content">
                     <h4>The Future</h4>
@@ -236,23 +355,35 @@ const AboutPage = () => {
                       drafting to serve legal professionals worldwide.
                     </p>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
-            <div className="story-visual">
+            <motion.div 
+              className="story-visual"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.3 }}
+              viewport={{ once: true }}
+            >
               <div className="story-graphic">
                 <div className="story-element">📊</div>
                 <div className="story-element">⚖️</div>
                 <div className="story-element">🤖</div>
                 <div className="story-element">📈</div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* CTA Section */}
-      <section className="about-cta">
+      <motion.section 
+        className="about-cta"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="cta-content">
             <h2 className="cta-title">Ready to Transform Your Legal Practice?</h2>
@@ -260,23 +391,27 @@ const AboutPage = () => {
               Join hundreds of law firms already using Law-AI to work smarter, not harder.
             </p>
             <div className="cta-actions">
-              <button 
+              <motion.button 
                 className="btn btn-primary btn-lg"
                 onClick={() => navigate('/signin')}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
               >
                 Start Free Trial
                 <span>→</span>
-              </button>
-              <button 
+              </motion.button>
+              <motion.button 
                 className="btn btn-secondary btn-lg"
                 onClick={() => navigate('/#contact')}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
               >
                 Contact Sales
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Footer */}
       <footer className="about-footer">

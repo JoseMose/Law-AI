@@ -73,3 +73,19 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Landing Page Scroll Snapping */
+.landing-page {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.landing-page section {
+  scroll-snap-align: start;
+  min-height: 100vh;
+}
+
+/* Performance optimizations for animations */
+.landing-page * {
+  will-change: transform, opacity;
+}

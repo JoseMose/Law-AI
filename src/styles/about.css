@@ -3,10 +3,22 @@
 .about-page {
   min-height: 100vh;
   background: var(--color-white);
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.about-page section {
+  scroll-snap-align: start;
+  min-height: 100vh;
+}
+
+/* Performance optimizations for animations */
+.about-page * {
+  will-change: transform, opacity;
 }
 
 /* About Navigation */
-.about-nav {
+.landing-nav {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--color-gray-200);
@@ -16,7 +28,7 @@
   z-index: 1000;
 }
 
-.about-nav .navbar-brand.about-logo {
+.landing-nav .navbar-brand.landing-logo {
   color: black !important;
   font-weight: 800 !important;
   text-decoration: none !important;
@@ -25,7 +37,7 @@
   cursor: pointer;
 }
 
-.about-nav .nav-button {
+.landing-nav .navbar-link {
   color: black !important;
   text-decoration: none !important;
   font-weight: 500 !important;
@@ -37,40 +49,40 @@
   transition: all var(--transition-fast);
 }
 
-.about-nav .nav-button:hover {
+.landing-nav .navbar-link:hover {
   color: var(--color-accent) !important;
   background: var(--color-gray-50);
 }
 
-.about-nav .nav-button.active {
+.landing-nav .navbar-link.active {
   color: var(--color-accent) !important;
   background: var(--color-gray-100);
   font-weight: 600;
 }
 
-.about-nav .btn {
+.landing-nav .btn {
   font-weight: 600 !important;
   opacity: 1 !important;
 }
 
-.about-nav .btn-ghost {
+.landing-nav .btn-ghost {
   color: black !important;
   border-color: var(--color-gray-300) !important;
 }
 
-.about-nav .btn-ghost:hover {
+.landing-nav .btn-ghost:hover {
   color: var(--color-white) !important;
   background: var(--color-gray-900) !important;
   border-color: var(--color-gray-900) !important;
 }
 
-.about-nav .btn-primary {
+.landing-nav .btn-primary {
   background: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
   color: var(--color-white) !important;
 }
 
-.about-nav .btn-primary:hover {
+.landing-nav .btn-primary:hover {
   background: var(--color-accent-dark) !important;
   border-color: var(--color-accent-dark) !important;
   transform: translateY(-1px);

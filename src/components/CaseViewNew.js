@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PDFUpload from '../PDFUpload';
 import ReviewPane from './ReviewPane';
+import CalendarSidebar from './CalendarSidebar';
 
 const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
 
@@ -30,8 +31,21 @@ function extractArrayFromResponse(data) {
   return [];
 }
 
+// Small helper to map status keys to user-friendly labels (same as Clients page)
+function getStatusLabel(status) {
+  const labelMap = {
+    'prospect': 'Prospect',
+    'active': 'Active',
+    'on-hold': 'On Hold',
+    'closed': 'Closed',
+    'pending-intake': 'Pending Intake',
+  };
+  if (!status) return 'Active';
+  return labelMap[status] || (status.charAt(0).toUpperCase() + status.slice(1));
+}
+
 // Component for displaying a document with modern styling
-const DocumentItem = ({ document, onPreview, onShowVersions, onReview, reviewing, previewLoading }) => {
+const DocumentItem = ({ document, onPreview, onShowVersions, onReview, reviewing, previewLoading, onDelete }) => {
   return (
     <div className="card mb-2">
       <div className="card-body p-4">
@@ -82,6 +96,12 @@ const DocumentItem = ({ document, onPreview, onShowVersions, onReview, reviewing
             >
               📋 Versions
             </button>
+            <button 
+              className="btn btn-danger btn-sm" 
+              onClick={() => onDelete(document)}
+            >
+              🗑️ Delete
+            </button>
           </div>
         </div>
       </div>
@@ -94,8 +114,11 @@ const DocumentItem = ({ document, onPreview, onShowVersions, onReview, reviewing
 export default function CaseView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  // Core case state
   const [cs, setCs] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Read-only displays for role and status will be derived below from selected client or case
   
   // Folder functionality state
   const [documents, setDocuments] = useState([]);
@@ -127,6 +150,11 @@ export default function CaseView() {
   const [clients, setClients] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [clientsLoading, setClientsLoading] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [caseRole, setCaseRole] = useState('Client');
+
+  // Calendar sidebar state
+  const [showCalendarSidebar, setShowCalendarSidebar] = useState(true);
 
   const fetchVersionsFor = useCallback(async (docId) => {
     try {
@@ -237,10 +265,22 @@ export default function CaseView() {
     }
   }, []);
 
+  // NOTE: case role/status are read-only in this view and come from the selected client.
+
+  // Initialize caseRole when case data loads
+  useEffect(() => {
+    if (cs) {
+      setCaseRole(cs.role || cs.case_role || 'Client');
+    }
+  }, [cs]);
+
   // Handle client selection
   const handleClientChange = async (clientId) => {
     try {
       setSelectedClientId(clientId);
+  // update selectedClient from list if available
+  const found = clients.find(c => c.id === clientId);
+  if (found) setSelectedClient(found);
       
       const requestBody = {
         id: cs.id,
@@ -288,6 +328,58 @@ export default function CaseView() {
     }
     
     // Clear status after 3 seconds
+    setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  // Role/status are intentionally read-only here (derived from client). Handlers removed.
+
+  // Persist case role change to backend
+  const handleRoleChange = async (newRole) => {
+    try {
+      setCaseRole(newRole);
+      const requestBody = {
+        id: cs.id,
+        title: cs.title,
+        description: cs.description || '',
+        status: cs.status || 'active',
+        priority: cs.priority || 'medium',
+        type: cs.type || 'General',
+        client: cs.client || selectedClientId || '',
+        role: newRole,
+        createdAt: cs.createdAt,
+        updatedAt: new Date().toISOString().split('T')[0]
+      };
+
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE}/cases/${cs.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json().catch(() => null);
+      if (data && data.success === true) {
+        const updatedCase = data.updatedCase || data.case || { ...cs, role: newRole };
+        updatedCase.role = newRole;
+        setCs(updatedCase);
+        setSaveStatus({ type: 'success', message: 'Case role updated' });
+
+        // Update selectedClient local copy if present
+        if (selectedClient) {
+          const updatedClient = { ...selectedClient, case_role: newRole, role: newRole };
+          setSelectedClient(updatedClient);
+          setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+        }
+      } else {
+        setSaveStatus({ type: 'error', message: `Failed to update role: ${data?.error || response.status}` });
+      }
+    } catch (err) {
+      console.error('Error updating role:', err);
+      setSaveStatus({ type: 'error', message: 'Error updating role' });
+    }
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
@@ -387,8 +479,47 @@ export default function CaseView() {
 
   // Handle show versions
   const handleShowVersions = (doc) => {
-    setShowingVersionsFor(doc);
+    // Toggle: if clicking the same doc, close the versions sidebar
+    if (showingVersionsFor && showingVersionsFor.id === doc.id) {
+      setShowingVersionsFor(null);
+    } else {
+      setShowingVersionsFor(doc);
+    }
   };
+
+  // Handle document deletion
+  const handleDeleteDocument = async (doc) => {
+    if (!window.confirm(`Are you sure you want to delete "${doc.filename || doc.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('accessToken');
+      const res = await fetch(`${API_BASE}/documents/${doc.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        // Remove the document from the local state
+        setDocuments(prev => prev.filter(d => d.id !== doc.id));
+        // Close versions sidebar if it was showing this document
+        if (showingVersionsFor && showingVersionsFor.id === doc.id) {
+          setShowingVersionsFor(null);
+        }
+        alert('Document deleted successfully');
+      } else {
+        const errorText = await res.text();
+        alert('Failed to delete document: ' + res.status + '\n' + errorText);
+      }
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Error deleting document');
+    }
+  };
+
   const handleReview = async (doc) => {
     try {
       setReviewing(doc.id);
@@ -481,10 +612,6 @@ export default function CaseView() {
     setCompletedIssues(prev => new Set([...prev, issue.id]));
   };
 
-  // Close versions
-  const closeVersions = () => {
-    setShowingVersionsFor(null);
-  };
 
   // Utility to highlight all issues in the contract text
   function getHighlightedHtml(content, issues, selectedIssueId) {
@@ -515,6 +642,11 @@ export default function CaseView() {
 
   const [versionsRefreshKey, setVersionsRefreshKey] = useState(0);
   const [saveStatus, setSaveStatus] = useState(null); // { type: 'success'|'error', message }
+
+  // Ref for main content container
+  const mainContentRef = useRef(null);
+  const documentsRef = useRef(null);
+
 
   if (loading) {
     return (
@@ -551,7 +683,7 @@ export default function CaseView() {
 
   return (
     <div className="container">
-      <div className="main-content">
+      <div className="main-content" ref={mainContentRef} style={{ position: 'relative' }}>
         {/* Page Header */}
         <div className="page-header">
           <div className="breadcrumb">
@@ -564,76 +696,23 @@ export default function CaseView() {
             <span className="breadcrumb-separator">/</span>
             <span className="breadcrumb-item active">{cs.title}</span>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={() => setShowCalendarSidebar(!showCalendarSidebar)}
+              className={`btn ${showCalendarSidebar ? 'btn-primary' : 'btn-secondary'} flex items-center gap-2`}
+            >
+              📅 {showCalendarSidebar ? 'Hide Calendar' : 'Show Calendar'}
+            </button>
+          </div>
+
           {cs.description && (
             <p className="page-description">{cs.description}</p>
           )}
-          
-          {/* Client Selection and Info */}
-          <div className="mt-6">
-            <div className="card">
-              <div className="card-body">
-                <h3 className="card-title">Client Information</h3>
-                
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Client Selection Dropdown */}
-                  <div className="form-group">
-                    <label className="form-label">Associated Client</label>
-                    <select
-                      value={selectedClientId}
-                      onChange={(e) => handleClientChange(e.target.value)}
-                      className="form-select"
-                      disabled={clientsLoading}
-                    >
-                      <option value="">
-                        {clientsLoading ? 'Loading clients...' : 'Select a client'}
-                      </option>
-                      {clients.map(client => (
-                        <option key={client.id} value={client.id}>
-                          {client.first_name} {client.last_name} {client.company_name ? `(${client.company_name})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Client Details Display */}
-                  {selectedClientId && (() => {
-                    const selectedClient = clients.find(c => c.id === selectedClientId);
-                    return selectedClient ? (
-                      <div className="grid grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="text-lg font-medium mb-3">Contact Details</h4>
-                          <div className="space-y-2">
-                            <p><span className="font-medium">Name:</span> {selectedClient.first_name} {selectedClient.last_name}</p>
-                            {selectedClient.company_name && (
-                              <p><span className="font-medium">Company:</span> {selectedClient.company_name}</p>
-                            )}
-                            <p><span className="font-medium">Email:</span> {selectedClient.email}</p>
-                            {selectedClient.phone && (
-                              <p><span className="font-medium">Phone:</span> {selectedClient.phone}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {selectedClient.address && (
-                          <div>
-                            <h4 className="text-lg font-medium mb-3">Address</h4>
-                            <div className="space-y-1">
-                              <p>{selectedClient.address.street}</p>
-                              <p>{selectedClient.address.city}, {selectedClient.address.state} {selectedClient.address.zip}</p>
-                              {selectedClient.address.country && (
-                                <p>{selectedClient.address.country}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
+
+        {/* header description handled above; main content (documents) + right sidebar inserted below */}
 
         {/* Document Preview */}
         {previewUrl && previewingDoc && !showReviewMode && (
@@ -794,9 +873,9 @@ export default function CaseView() {
         )}
 
         {/* Main Content */}
-        <div className="flex gap-6">
-          {/* Documents Section */}
-          <div className="flex-1">
+        <div className="flex gap-6 transition-all duration-500 ease-in-out" style={{ position: 'relative' }}>
+          {/* Documents Section (main column) */}
+          <div className="flex-1" ref={documentsRef}>
             <div className="card">
               <div className="card-header">
                 <div className="flex items-center justify-between">
@@ -814,6 +893,8 @@ export default function CaseView() {
                     onShowVersions={handleShowVersions}
                     onReview={handleReview}
                     reviewing={reviewing}
+                    previewLoading={previewLoading}
+                    onDelete={handleDeleteDocument}
                   />
                 ))}
 
@@ -826,6 +907,7 @@ export default function CaseView() {
                     onShowVersions={handleShowVersions}
                     onReview={handleReview}
                     reviewing={reviewing}
+                    onDelete={handleDeleteDocument}
                   />
                 ))}
 
@@ -852,22 +934,130 @@ export default function CaseView() {
             </div>
           </div>
 
-          {/* Versions Sidebar */}
-          {showingVersionsFor && (
-            <VersionsSidebar 
-              doc={showingVersionsFor} 
-              onClose={closeVersions} 
-              refreshKey={versionsRefreshKey} 
-              initialVersions={versionsCache[showingVersionsFor.id] || null}
-              onPreviewVersion={(version) => {
-                // Save current content and switch to preview mode
-                setOriginalContent(editableContent);
-                setEditableContent(version.content);
-                setIsPreviewMode(true);
-                setPreviewingVersion(version);
-              }}
-            />
-          )}
+            {/* Versions panel slides in as a middle column between documents and right sidebar */}
+            <div style={{
+              width: showingVersionsFor ? '400px' : '0px',
+              transition: 'width 500ms ease-out',
+              overflow: 'hidden',
+              flexShrink: 0
+            }}>
+              {showingVersionsFor && (
+                <div style={{ width: '400px' }}>
+                  <VersionsSidebar
+                    doc={showingVersionsFor}
+                    onClose={() => setShowingVersionsFor(null)}
+                    refreshKey={versionsRefreshKey}
+                    initialVersions={versionsCache[showingVersionsFor.id] || []}
+                    onPreviewVersion={(versionWithContent) => {
+                      setPreviewingVersion(versionWithContent);
+                      setPreviewUrl(null);
+                      setPreviewingDoc({ ...showingVersionsFor });
+                      setIsPreviewMode(true);
+                      // optionally close versions after preview
+                      setTimeout(() => setShowingVersionsFor(null), 300);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+          {/* Right Sidebar: Client Information + Calendar */}
+          <aside className="w-80 flex-shrink-0">
+            <div className="space-y-4">
+              {/* Client Info Card */}
+              <div className="card">
+                <div className="card-body">
+                  <h3 className="card-title">Client Information</h3>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group">
+                      <label className="form-label">Associated Client</label>
+                      <select
+                        value={selectedClientId}
+                        onChange={(e) => handleClientChange(e.target.value)}
+                        className="form-select"
+                        disabled={clientsLoading}
+                      >
+                        <option value="">
+                          {clientsLoading ? 'Loading clients...' : 'Select a client'}
+                        </option>
+                        {clients.map(client => (
+                          <option key={client.id} value={client.id}>
+                            {client.first_name} {client.last_name} {client.company_name ? `(${client.company_name})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Case Role dropdown placed directly under Associated Client */}
+                    <div className="form-group">
+                      <label className="form-label">Case Role</label>
+                      <select
+                        className="form-select"
+                        value={caseRole}
+                        onChange={(e) => handleRoleChange(e.target.value)}
+                      >
+                        <option value="Client">Client</option>
+                        <option value="Plaintiff">Plaintiff</option>
+                        <option value="Defendant">Defendant</option>
+                        <option value="Opposing Party">Opposing Party</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {selectedClientId && (() => {
+                      const sc = clients.find(c => c.id === selectedClientId) || selectedClient;
+                      return sc ? (
+                        <div className="text-sm text-gray-700 space-y-2">
+                          <div>
+                            <div><span className="font-medium">Name:</span> {sc.first_name} {sc.last_name}</div>
+                            {sc.company_name && <div><span className="font-medium">Company:</span> {sc.company_name}</div>}
+                            <div><span className="font-medium">Email:</span> {sc.email}</div>
+                            {sc.phone && <div><span className="font-medium">Phone:</span> {sc.phone}</div>}
+                          </div>
+
+                          {sc.address && (
+                            <div className="mt-2">
+                              <div className="font-medium">Address</div>
+                              <div>{sc.address.street}</div>
+                              <div>{sc.address.city}, {sc.address.state} {sc.address.zip}</div>
+                              {sc.address.country && <div>{sc.address.country}</div>}
+                            </div>
+                          )}
+
+                          {/* Role & Status moved under address and sourced from client when present */}
+                          <div className="mt-3 space-y-2">
+                            <div>
+                              <div className="font-medium">Status</div>
+                              <div className="text-sm">{getStatusLabel(sc.status || sc.client_status || sc.state || cs?.status || 'active')}</div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3">
+                            <button
+                              className="btn btn-link text-sm"
+                              onClick={() => navigate(`/clients/${selectedClientId}`)}
+                              title="View full client profile"
+                            >
+                              View Full Client Profile ↗
+                            </button>
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendar */}
+              <CalendarSidebar
+                caseId={id}
+                clientId={selectedClientId}
+                isOpen={showCalendarSidebar}
+                onToggle={() => setShowCalendarSidebar(!showCalendarSidebar)}
+              />
+            </div>
+          </aside>
         </div>
 
         {/* Delete Case Button at the very bottom */}
@@ -944,7 +1134,13 @@ function VersionsSidebar({ doc, onClose, refreshKey, initialVersions, onPreviewV
   }, [fetchVersions, refreshKey, initialVersions]);
 
   return (
-    <div className="card" style={{ maxWidth: '600px', width: '100%' }}>
+    <div 
+      className="card"
+      style={{ 
+        maxWidth: '600px', 
+        width: '100%',
+      }}
+    >
       <div className="card-header">
         <div className="flex items-center justify-between">
           <h3 className="card-title">Document Versions</h3>

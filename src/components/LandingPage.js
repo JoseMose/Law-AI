@@ -1,8 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { scrollYProgress } = useScroll();
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, -150]);
+  const heroTextY = useTransform(scrollYProgress, [0, 1], [0, -75]);
 
   const scrollToSection = (sectionId) => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
@@ -22,48 +26,74 @@ const LandingPage = () => {
             <li><a href="#contact" className="navbar-link">Contact</a></li>
           </ul>
           <div className="navbar-actions">
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/signin')}>
+            <motion.button 
+              className="btn btn-ghost btn-sm" 
+              onClick={() => navigate('/signin')}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
               Sign In
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/signin')}>
+            </motion.button>
+            <motion.button 
+              className="btn btn-primary btn-sm" 
+              onClick={() => navigate('/signin')}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
               Get Started
-            </button>
+            </motion.button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="hero-section">
+      <motion.section 
+        className="hero-section"
+        style={{ y: heroY }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, ease: "easeInOut" }}
+      >
         <div className="container">
           <div className="hero-grid">
             <div className="hero-content">
               <div className="hero-badge">
                 <span>⚖️ Complete Legal Practice Platform</span>
               </div>
-              <h1 className="hero-title">
+              <motion.h1 
+                className="hero-title"
+                style={{ y: heroTextY }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0.2, ease: "easeInOut" }}
+              >
                 All-in-One Legal
                 <span className="hero-highlight"> Practice Management</span>
                 <br />with AI-Powered Tools
-              </h1>
+              </motion.h1>
               <p className="hero-description">
                 Streamline your entire legal practice with integrated case management, AI contract analysis, 
                 secure client communication, and automated billing. Everything you need in one secure platform.
               </p>
               <div className="hero-actions">
-                <button 
+                <motion.button 
                   className="btn btn-primary btn-lg"
                   onClick={() => navigate('/signin')}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                 >
                   Start Free Trial
                   <span>→</span>
-                </button>
-                <button 
+                </motion.button>
+                <motion.button 
                   className="btn btn-secondary btn-lg"
                   onClick={() => scrollToSection('demo')}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                 >
                   <span>▶</span>
                   Watch Demo
-                </button>
+                </motion.button>
               </div>
               <div className="hero-stats">
                 <div className="stat-item">
@@ -135,10 +165,17 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Features Section */}
-      <section id="features" className="features-section">
+      <motion.section 
+        id="features" 
+        className="features-section"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Powerful Features for Legal Professionals</h2>
@@ -148,7 +185,14 @@ const LandingPage = () => {
           </div>
           
           <div className="features-grid">
-            <div className="feature-card">
+            <motion.div 
+              className="feature-card"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="feature-icon">📋</div>
               <h3 className="feature-title">Case Management Dashboard</h3>
               <p className="feature-description">
@@ -161,9 +205,16 @@ const LandingPage = () => {
                 <li>✓ Role-based permissions</li>
                 <li>✓ Real-time case tracking</li>
               </ul>
-            </div>
+            </motion.div>
 
-            <div className="feature-card">
+            <motion.div 
+              className="feature-card"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="feature-icon">🤖</div>
               <h3 className="feature-title">Contract AI Helper</h3>
               <p className="feature-description">
@@ -176,9 +227,16 @@ const LandingPage = () => {
                 <li>✓ Version control tracking</li>
                 <li>✓ Standard clause library</li>
               </ul>
-            </div>
+            </motion.div>
 
-            <div className="feature-card">
+            <motion.div 
+              className="feature-card"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.2 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="feature-icon">�</div>
               <h3 className="feature-title">AI Legal Researcher</h3>
               <p className="feature-description">
@@ -191,9 +249,16 @@ const LandingPage = () => {
                 <li>✓ Plain-language AI summaries</li>
                 <li>✓ Citation export tools</li>
               </ul>
-            </div>
+            </motion.div>
 
-            <div className="feature-card">
+            <motion.div 
+              className="feature-card"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.3 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="feature-icon">✍️</div>
               <h3 className="feature-title">e-Signature Workflow</h3>
               <p className="feature-description">
@@ -206,9 +271,16 @@ const LandingPage = () => {
                 <li>✓ Multi-party signing support</li>
                 <li>✓ Client portal integration</li>
               </ul>
-            </div>
+            </motion.div>
 
-            <div className="feature-card">
+            <motion.div 
+              className="feature-card"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.4 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="feature-icon">�</div>
               <h3 className="feature-title">Secure Client Communication</h3>
               <p className="feature-description">
@@ -221,9 +293,16 @@ const LandingPage = () => {
                 <li>✓ Secure document sharing</li>
                 <li>✓ Email/SMS notifications</li>
               </ul>
-            </div>
+            </motion.div>
 
-            <div className="feature-card">
+            <motion.div 
+              className="feature-card"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.5 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02 }}
+            >
               <div className="feature-icon">�</div>
               <h3 className="feature-title">Billing & Invoicing</h3>
               <p className="feature-description">
@@ -236,49 +315,86 @@ const LandingPage = () => {
                 <li>✓ Payment processing (Stripe)</li>
                 <li>✓ Financial dashboard</li>
               </ul>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Benefits Section */}
-      <section id="benefits" className="benefits-section">
+      <motion.section 
+        id="benefits" 
+        className="benefits-section"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="benefits-grid">
             <div className="benefits-content">
               <h2 className="section-title">Why Law Firms Choose Law‑AI</h2>
               <div className="benefit-items">
-                <div className="benefit-item">
+                <motion.div 
+                  className="benefit-item"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.1 }}
+                  viewport={{ once: true }}
+                >
                   <div className="benefit-icon">🔒</div>
                   <div className="benefit-content">
                     <h4>Enterprise-Grade Security</h4>
                     <p>End-to-end encryption, GDPR/HIPAA compliance, and AWS infrastructure ensure your data is always protected.</p>
                   </div>
-                </div>
-                <div className="benefit-item">
+                </motion.div>
+                <motion.div 
+                  className="benefit-item"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.2 }}
+                  viewport={{ once: true }}
+                >
                   <div className="benefit-icon">⚡</div>
                   <div className="benefit-content">
                     <h4>Complete Practice Integration</h4>
                     <p>Manage cases, contracts, research, signatures, billing, and client communication in one unified platform.</p>
                   </div>
-                </div>
-                <div className="benefit-item">
+                </motion.div>
+                <motion.div 
+                  className="benefit-item"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.3 }}
+                  viewport={{ once: true }}
+                >
                   <div className="benefit-icon">🤖</div>
                   <div className="benefit-content">
                     <h4>AI-Powered Efficiency</h4>
                     <p>Contract analysis, legal research, and document drafting powered by advanced AI to accelerate your workflow.</p>
                   </div>
-                </div>
-                <div className="benefit-item">
+                </motion.div>
+                <motion.div 
+                  className="benefit-item"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut", delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
                   <div className="benefit-icon">�</div>
                   <div className="benefit-content">
                     <h4>Automated Compliance & Tracking</h4>
                     <p>Audit logs, signature trails, and automated invoicing ensure complete compliance and financial transparency.</p>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
-            <div className="benefits-visual">
+            <motion.div 
+              className="benefits-visual"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.2 }}
+              viewport={{ once: true }}
+            >
               <div className="stats-card">
                 <h4>Platform Capabilities</h4>
                 <div className="metric">
@@ -294,13 +410,20 @@ const LandingPage = () => {
                   <div className="metric-label">Encrypted & compliant</div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="pricing-section">
+      <motion.section 
+        id="pricing" 
+        className="pricing-section"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Complete Legal Platform Pricing</h2>
@@ -376,10 +499,16 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* CTA Section */}
-      <section className="cta-section">
+      <motion.section 
+        className="cta-section"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        viewport={{ once: true }}
+      >
         <div className="container">
           <div className="cta-content">
             <h2>Ready to Transform Your Legal Practice?</h2>
@@ -397,7 +526,7 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Footer */}
       <footer id="contact" className="about-footer">
