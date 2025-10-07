@@ -50,9 +50,26 @@
       "Effect": "Allow",
       "Action": [
         "bedrock:InvokeModel",
-        "bedrock:ListFoundationModels"
+        "bedrock:ListFoundationModels",
+        "bedrock:InvokeModelWithResponseStream"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "OpenSearchAccess",
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpGet",
+        "es:ESHttpPost",
+        "es:ESHttpPut",
+        "es:ESHttpDelete",
+        "es:DescribeElasticsearchDomain",
+        "es:DescribeElasticsearchDomains"
+      ],
+      "Resource": [
+        "arn:aws:es:us-east-1:*:domain/georgia-law-vectors",
+        "arn:aws:es:us-east-1:*:domain/georgia-law-vectors/*"
+      ]
     }
   ]
 }

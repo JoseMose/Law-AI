@@ -222,13 +222,14 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
       >
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-gray-100 bg-white">
+          <div className="p-4 border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Case Calendar</h3>
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--accent-600)', fontWeight: '700' }}>Case Calendar</h3>
               <button
                 onClick={onToggle}
                 className="p-1 rounded-md hover:bg-gray-100 transition-colors"
                 aria-label="Close calendar"
+                style={{ borderRadius: 'var(--radius)' }}
               >
                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -238,14 +239,13 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
           </div>
 
           {/* Calendar */}
-          <div className="p-4 bg-white">
+          <div className="p-4" style={{ backgroundColor: 'var(--card)' }}>
             <Calendar
               onChange={setSelectedDate}
               value={selectedDate}
-              className="w-full shadow-sm rounded-md"
-              style={{ border: 'none', boxShadow: 'none' }}
+              className="w-full"
               tileClassName={({ date, view }) => {
-                if (view === 'month') return 'p-1 hover:bg-gray-50 rounded';
+                if (view === 'month') return 'calendar-tile';
                 return null;
               }}
               tileContent={({ date, view }) => {
@@ -253,7 +253,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                   const dayEvents = getEventsForDate(date);
                   return dayEvents.length > 0 ? (
                     <div className="flex justify-center mt-1">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
                     </div>
                   ) : null;
                 }
@@ -263,14 +263,14 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
 
           {/* Events for Selected Date */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">
+                <h4 className="font-medium" style={{ color: 'var(--accent-600)', fontWeight: '600' }}>
                   Events for {selectedDate.toLocaleDateString()}
                 </h4>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                  className="btn btn-primary"
                 >
                   + Add Event
                 </button>
@@ -285,7 +285,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
               ) : (
                 <div className="space-y-3">
                   {getEventsForDate(selectedDate).map(event => (
-                    <div key={event.event_id} className="p-3 bg-white rounded-lg shadow-sm">
+                    <div key={event.event_id} className="p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius)' }}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -293,18 +293,18 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                               className="w-3 h-3 rounded-full flex-shrink-0"
                               style={{ backgroundColor: EVENT_TYPE_COLORS[event.type] || EVENT_TYPE_COLORS.Other }}
                             ></div>
-                            <h5 className="font-medium text-gray-900">{event.title}</h5>
+                            <h5 className="font-medium" style={{ color: 'white' }}>{event.title}</h5>
                           </div>
-                          <div className="text-sm text-gray-600 mb-1">
+                          <div className="text-sm mb-1" style={{ color: 'white' }}>
                             {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                           {event.location && (
-                            <div className="text-sm text-gray-600 mb-1">
+                            <div className="text-sm mb-1" style={{ color: 'white' }}>
                               📍 {event.location}
                             </div>
                           )}
                           {event.notes && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm" style={{ color: 'white' }}>
                               {event.notes}
                             </div>
                           )}
@@ -316,6 +316,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                               setShowAddModal(true);
                             }}
                             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                            style={{ borderRadius: 'var(--radius)' }}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -324,6 +325,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                           <button
                             onClick={() => handleDeleteEvent(event.event_id)}
                             className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                            style={{ borderRadius: 'var(--radius)' }}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -335,7 +337,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                   ))}
 
                   {getEventsForDate(selectedDate).length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8" style={{ color: 'white' }}>
                       No events scheduled for this date
                     </div>
                   )}
@@ -344,8 +346,8 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
             </div>
 
             {/* Upcoming Events */}
-            <div className="border-t border-gray-200 p-4">
-              <h4 className="font-medium text-gray-900 mb-3">Upcoming Events</h4>
+            <div className="border-t p-4" style={{ borderColor: 'var(--border)' }}>
+                            <h4 className="font-medium mb-3" style={{ color: 'white', fontWeight: '600' }}>Upcoming Events</h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {getUpcomingEvents().map(event => (
                   <div key={event.event_id} className="flex items-center gap-2 text-sm">
@@ -354,15 +356,15 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                       style={{ backgroundColor: EVENT_TYPE_COLORS[event.type] || EVENT_TYPE_COLORS.Other }}
                     ></div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">{event.title}</div>
-                      <div className="text-gray-500">
+                      <div className="font-medium truncate" style={{ color: 'white' }}>{event.title}</div>
+                      <div style={{ color: 'white' }}>
                         {new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
                 ))}
                 {getUpcomingEvents().length === 0 && (
-                  <div className="text-gray-500 text-sm">No upcoming events</div>
+                  <div style={{ color: 'white' }} className="text-sm">No upcoming events</div>
                 )}
               </div>
             </div>
@@ -409,15 +411,16 @@ const EventModal = ({ event, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ backdropFilter: 'blur(4px)' }}>
+      <div className="w-full max-w-md mx-4 rounded-lg p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: 'var(--radius)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--accent-600)', fontWeight: '700' }}>
             {event ? 'Edit Event' : 'Add New Event'}
           </h3>
           <button
             onClick={onClose}
             className="p-1 rounded-md hover:bg-gray-200 transition-colors"
+            style={{ borderRadius: 'var(--radius)' }}
           >
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -427,34 +430,37 @@ const EventModal = ({ event, onSave, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#0f172a' }}>Title</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{ borderColor: 'var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--card)' }}
               placeholder="Event title"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#0f172a' }}>Date & Time</label>
             <input
               type="datetime-local"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{ borderColor: 'var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--card)' }}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#0f172a' }}>Type</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{ borderColor: 'var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--card)' }}
             >
               <option value="Hearing">Hearing</option>
               <option value="Deposition">Deposition</option>
@@ -468,22 +474,24 @@ const EventModal = ({ event, onSave, onClose }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#0f172a' }}>Location</label>
             <input
               type="text"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{ borderColor: 'var(--border)', borderRadius: 'var(--border)', backgroundColor: 'var(--card)' }}
               placeholder="Location (optional)"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#0f172a' }}>Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{ borderColor: 'var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--card)' }}
               rows={3}
               placeholder="Additional notes (optional)"
             />
@@ -493,13 +501,15 @@ const EventModal = ({ event, onSave, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              style={{ borderColor: 'var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--card)' }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors"
+              style={{ backgroundColor: 'var(--accent)', borderRadius: 'var(--radius)' }}
             >
               {event ? 'Update Event' : 'Add Event'}
             </button>

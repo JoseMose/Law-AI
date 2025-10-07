@@ -1,0 +1,13 @@
+{
+  "statuteData": {
+    "title_number": "16",
+    "chapter_number": "5", 
+    "section_number": "21",
+    "section_name": "Aggravated assault",
+    "full_text": "Test statute text for aggravated assault penalties",
+    "source_url": "https://law.justia.com/codes/georgia/2020/title-16/chapter-5/section-16-5-21",
+    "effective_date": "2020-01-01",
+    "practice_area": "criminal"
+  },
+  "userQuery": "What are the penalties?"
+}

@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'OpenSearch Domain for Georgia Law Research Vector Search'
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: 'georgia-law-vectors'
+    Description: 'Name of the OpenSearch domain'
+
+  InstanceType:
+    Type: String
+    Default: 'om2.large.search'
+    AllowedValues:
+      - 'om2.large.search'
+      - 'or2.large.search'
+      - 'or1.large.search'
+      - 'r7g.large.search'
+      - 'r7i.large.search'
+      - 't3.small.search'
+    Description: 'Instance type for OpenSearch nodes (om2.large.search recommended for vector search)'
+
+  InstanceCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 10
+    Description: 'Number of instances'
+
+  VolumeSize:
+    Type: Number
+    Default: 20
+    MinValue: 10
+    MaxValue: 100
+    Description: 'EBS volume size in GB'
+
+Resources:
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: !Ref DomainName
+      EngineVersion: 'OpenSearch_2.11'
+      ClusterConfig:
+        InstanceType: !Ref InstanceType
+        InstanceCount: !Ref InstanceCount
+        DedicatedMasterEnabled: false
+        WarmEnabled: false
+        ZoneAwarenessEnabled: false
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: 'gp3'
+        VolumeSize: !Ref VolumeSize
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+        TLSSecurityPolicy: 'Policy-Min-TLS-1-2-2019-07'
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'es:*'
+            Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${DomainName}/*'
+      AdvancedOptions:
+        'override_main_response_version': 'true'
+        'rest.action.multi.allow_explicit_index': 'true'
+
+Outputs:
+  OpenSearchDomainEndpoint:
+    Description: 'OpenSearch domain endpoint'
+    Value: !GetAtt OpenSearchDomain.DomainEndpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-OpenSearchEndpoint'
+
+  OpenSearchDomainArn:
+    Description: 'OpenSearch domain ARN'
+    Value: !GetAtt OpenSearchDomain.DomainArn
+    Export:
+      Name: !Sub '${AWS::StackName}-OpenSearchArn'

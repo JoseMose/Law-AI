@@ -1035,7 +1035,7 @@ export default function CaseView() {
 
                           <div className="mt-3">
                             <button
-                              className="btn btn-link text-sm"
+                              className="btn btn-ghost text-sm"
                               onClick={() => navigate(`/clients/${selectedClientId}`)}
                               title="View full client profile"
                             >

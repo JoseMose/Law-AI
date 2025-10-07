@@ -2,7 +2,7 @@ service: lawai-serverless
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs20.x
   region: us-east-1
   stage: ${opt:stage, 'dev'}
   
@@ -22,6 +22,9 @@ provider:
     BEDROCK_MODEL: ${env:BEDROCK_MODEL}
     BEDROCK_API_KEY: ${env:BEDROCK_API_KEY}
     COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT}
+    OPENSEARCH_ENDPOINT: ${env:OPENSEARCH_ENDPOINT}
+    OPENSEARCH_USERNAME: ${env:OPENSEARCH_USERNAME}
+    OPENSEARCH_PASSWORD: ${env:OPENSEARCH_PASSWORD}
   
   iamRoleStatements:
     - Effect: Allow
@@ -62,6 +65,14 @@ provider:
       Action:
         - bedrock:InvokeModel
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - es:ESHttpGet
+        - es:ESHttpPost
+        - es:ESHttpPut
+        - es:ESHttpDelete
+        - es:ESHttpHead
+      Resource: "*"
 
 functions:
   api:
@@ -95,6 +106,68 @@ functions:
               - X-Amz-User-Agent
             allowCredentials: false
 
+  createLawEmbeddings:
+    handler: lambda-law-embeddings.handler
+    timeout: 900
+    memorySize: 1024
+    environment:
+      OPENSEARCH_ENDPOINT: ${env:OPENSEARCH_ENDPOINT}
+      OPENSEARCH_USERNAME: ${env:OPENSEARCH_USERNAME}
+      OPENSEARCH_PASSWORD: ${env:OPENSEARCH_PASSWORD}
+    events:
+      - http:
+          path: /laws/upload
+          method: POST
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: false
+
+  searchLaw:
+    handler: lambda-law-search.handler
+    timeout: 30
+    memorySize: 512
+    environment:
+      OPENSEARCH_ENDPOINT: ${env:OPENSEARCH_ENDPOINT}
+      OPENSEARCH_USERNAME: ${env:OPENSEARCH_USERNAME}
+      OPENSEARCH_PASSWORD: ${env:OPENSEARCH_PASSWORD}
+    events:
+      - http:
+          path: /laws/search
+          method: POST
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: false
+
+  summarizeLaw:
+    handler: lambda-law-summarize.handler
+    timeout: 60
+    memorySize: 512
+    events:
+      - http:
+          path: /laws/summarize
+          method: POST
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: false
+
 plugins:
   - serverless-dotenv-plugin
 
@@ -117,5 +190,9 @@ package:
     - node_modules/**
     - lambda.js
     - index.js
+    - lambda-auth.js
+    - lambda-law-embeddings.js
+    - lambda-law-search.js
+    - lambda-law-summarize.js
     - data/**
     - package.json

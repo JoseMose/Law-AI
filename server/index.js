@@ -826,12 +826,12 @@ app.post('/contracts/review', authenticateToken, express.json(), async (req, res
         // Start async job (works for PDFs in S3)
         const startRes = await texClient.send(new StartDocumentTextDetectionCommand({ DocumentLocation: { S3Object: { Bucket: S3_BUCKET, Name: key } } }));
         const jobId = startRes.JobId;
-        // Poll for completion (max ~40s)
+        // Poll for completion (max ~20s with 2s intervals)
         let done = false;
         let attempts = 0;
-        while (!done && attempts < 40) {
+        while (!done && attempts < 10) {
           // eslint-disable-next-line no-await-in-loop
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 2000)); // Poll every 2 seconds
           // eslint-disable-next-line no-await-in-loop
           const statusRes = await texClient.send(new GetDocumentTextDetectionCommand({ JobId: jobId }));
           const status = statusRes.JobStatus;
@@ -846,6 +846,10 @@ app.post('/contracts/review', authenticateToken, express.json(), async (req, res
             done = true; break;
           }
           attempts += 1;
+        }
+        // If still not done after 10 attempts, fall back to heuristics
+        if (!done) {
+          console.warn('Textract job still processing after 20s, falling back to heuristics');
         }
       } catch (e) {
         console.warn('Textract call failed, falling back to heuristics:', e && e.message ? e.message : e);

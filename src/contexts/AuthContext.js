@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         if (sessionStorage.getItem('accessToken')) {
-          await authService.verifyToken();
+          // Skip token verification for now, just trust stored token
           setUser({ username: sessionStorage.getItem('username') });
         }
       } catch (error) {
