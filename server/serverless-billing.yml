@@ -1,0 +1,85 @@
+service: iolta-billing-${self:provider.stage}
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  
+  environment:
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
+  
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminInitiateAuth
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminRespondToAuthChallenge
+        - cognito-idp:InitiateAuth
+        - cognito-idp:RespondToAuthChallenge
+        - cognito-idp:GetUser
+        - cognito-idp:SignUp
+        - cognito-idp:ConfirmSignUp
+        - cognito-idp:ForgotPassword
+        - cognito-idp:ConfirmForgotPassword
+        - cognito-idp:UpdateUserPoolClient
+      Resource:
+        - "arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/us-east-1_1kLOdae9J"
+        - "arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/us-east-1_1kLOdae9J/*"
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Billing"
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Ledger"
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Billing/index/*"
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Ledger/index/*"
+
+functions:
+  billingApi:
+    handler: lambda-billing.handler
+    timeout: 30
+    events:
+      - http:
+          path: /billing
+          method: GET
+          cors: true
+      - http:
+          path: /billing
+          method: POST
+          cors: true
+      - http:
+          path: /ledger/{account}
+          method: GET
+          cors: true
+
+plugins:
+  - serverless-dotenv-plugin
+
+custom:
+  dotenv:
+    path: .env
+    exclude:
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+
+package:
+  include:
+    - lambda-billing.js
+    - billing-service.js
+    - node_modules/@aws-sdk/client-dynamodb/**
+    - node_modules/@aws-sdk/lib-dynamodb/**
+    - node_modules/@aws-sdk/types/**
+    - node_modules/@aws-sdk/util-utf8-browser/**
+    - node_modules/@aws-sdk/util-utf8-node/**
+    - node_modules/@smithy/**
+  exclude:
+    - "**"
