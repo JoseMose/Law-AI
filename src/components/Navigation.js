@@ -45,7 +45,12 @@ const Navigation = ({ user, onSignOut }) => {
         {/* User Menu */}
         <div className="navbar-user">
           <span className="text-sm text-gray-600">
-            Welcome, {user?.username}
+            Welcome, {user?.demo ? 'Demo User 👨‍⚖️' : user?.username}
+            {user?.demo && (
+              <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                Demo Mode
+              </span>
+            )}
           </span>
           <div className="navbar-avatar">
             {getInitials(user?.username)}

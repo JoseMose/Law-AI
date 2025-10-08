@@ -1,0 +1,8 @@
+{
+  "name": "lambda-serverless-v2",
+  "version": "1.0.0",
+  "dependencies": {
+    "@opensearch-project/opensearch": "^2.5.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.490.0"
+  }
+}

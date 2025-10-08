@@ -2,6 +2,15 @@
 const { CognitoIdentityProvider } = require('@aws-sdk/client-cognito-identity-provider');
 const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
 
+// Import billing service
+const {
+  createBillingRecord,
+  getBillingRecords,
+  getBillingRecord,
+  getLedgerEntries,
+  updateBillingStatus
+} = require('./billing-service');
+
 // Initialize clients
 const cognitoClient = new CognitoIdentityProvider({ 
   region: 'us-east-1'
@@ -3995,6 +4004,156 @@ This Agreement constitutes the entire agreement between the parties and supersed
       }
     }
 
+    // Billing routes
+    // GET /billing - Get all billing records with optional filters
+    if (path === '/billing' || path === '/dev/billing') {
+      if (method === 'GET') {
+        try {
+          // Parse query parameters for filters
+          const queryParams = event.queryStringParameters || {};
+          const filters = {};
+
+          if (queryParams.caseId) filters.caseId = queryParams.caseId;
+          if (queryParams.clientId) filters.clientId = queryParams.clientId;
+          if (queryParams.paymentType) filters.paymentType = queryParams.paymentType;
+          if (queryParams.status) filters.status = queryParams.status;
+
+          const billingRecords = await getBillingRecords(filters);
+
+          return createResponse(200, {
+            success: true,
+            billing: billingRecords
+          });
+        } catch (error) {
+          console.error('Error fetching billing records:', error);
+          return createResponse(500, {
+            error: 'Failed to fetch billing records',
+            message: error.message
+          });
+        }
+      }
+
+      // POST /billing - Create new billing record
+      if (method === 'POST') {
+        try {
+          let bodyStr = rawBody;
+          if (event.isBase64Encoded) {
+            bodyStr = Buffer.from(rawBody, 'base64').toString('utf-8');
+          }
+          requestBody = JSON.parse(bodyStr);
+        } catch (e) {
+          return createResponse(400, { error: 'Invalid JSON in request body' });
+        }
+
+        try {
+          const billingRecord = await createBillingRecord(requestBody);
+
+          return createResponse(201, {
+            success: true,
+            billing: billingRecord,
+            message: 'Billing record created successfully'
+          });
+        } catch (error) {
+          console.error('Error creating billing record:', error);
+          return createResponse(400, {
+            error: 'Failed to create billing record',
+            message: error.message
+          });
+        }
+      }
+    }
+
+    // GET /billing/{id} - Get single billing record
+    if (path.match(/^\/billing\/[^\/]+$/) || path.match(/^\/dev\/billing\/[^\/]+$/)) {
+      if (method === 'GET') {
+        const billingId = path.split('/').pop();
+
+        try {
+          const billingRecord = await getBillingRecord(billingId);
+
+          if (!billingRecord) {
+            return createResponse(404, {
+              error: 'Billing record not found'
+            });
+          }
+
+          return createResponse(200, {
+            success: true,
+            billing: billingRecord
+          });
+        } catch (error) {
+          console.error('Error fetching billing record:', error);
+          return createResponse(500, {
+            error: 'Failed to fetch billing record',
+            message: error.message
+          });
+        }
+      }
+    }
+
+    // GET /ledger/{account} - Get ledger entries for trust or operating account
+    if (path.match(/^\/ledger\/(trust|operating)$/) || path.match(/^\/dev\/ledger\/(trust|operating)$/)) {
+      if (method === 'GET') {
+        const ledgerAccount = path.split('/').pop();
+
+        try {
+          const ledgerEntries = await getLedgerEntries(ledgerAccount);
+
+          return createResponse(200, {
+            success: true,
+            ledger: ledgerEntries,
+            account: ledgerAccount
+          });
+        } catch (error) {
+          console.error('Error fetching ledger entries:', error);
+          return createResponse(500, {
+            error: 'Failed to fetch ledger entries',
+            message: error.message
+          });
+        }
+      }
+    }
+
+    // PUT /billing/{id}/status - Update billing status
+    if (path.match(/^\/billing\/[^\/]+\/status$/) || path.match(/^\/dev\/billing\/[^\/]+\/status$/)) {
+      if (method === 'PUT') {
+        const billingId = path.split('/')[2]; // Extract ID from /billing/{id}/status
+
+        try {
+          let bodyStr = rawBody;
+          if (event.isBase64Encoded) {
+            bodyStr = Buffer.from(rawBody, 'base64').toString('utf-8');
+          }
+          requestBody = JSON.parse(bodyStr);
+        } catch (e) {
+          return createResponse(400, { error: 'Invalid JSON in request body' });
+        }
+
+        const { status } = requestBody;
+
+        if (!status || !['pending', 'paid'].includes(status)) {
+          return createResponse(400, {
+            error: 'Invalid status. Must be "pending" or "paid"'
+          });
+        }
+
+        try {
+          await updateBillingStatus(billingId, status);
+
+          return createResponse(200, {
+            success: true,
+            message: `Billing status updated to ${status}`
+          });
+        } catch (error) {
+          console.error('Error updating billing status:', error);
+          return createResponse(400, {
+            error: 'Failed to update billing status',
+            message: error.message
+          });
+        }
+      }
+    }
+
     // Default 404 for unhandled routes
     return createResponse(404, {
       error: 'Route not found',
@@ -4033,7 +4192,12 @@ This Agreement constitutes the entire agreement between the parties and supersed
         'POST /case-law/search',
         'GET /case-law/{id}',
         'POST /case-law/save-to-case',
-        'POST /case-law/analyze'
+        'POST /case-law/analyze',
+        'GET /billing',
+        'POST /billing',
+        'GET /billing/{id}',
+        'PUT /billing/{id}/status',
+        'GET /ledger/{account}'
       ]
     });
     

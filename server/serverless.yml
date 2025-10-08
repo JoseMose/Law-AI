@@ -1,4 +1,4 @@
-service: lawai-serverless
+service: lawyer-billing-system
 
 provider:
   name: aws
@@ -73,11 +73,29 @@ provider:
         - es:ESHttpDelete
         - es:ESHttpHead
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Billing"
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Ledger"
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Billing/index/*"
+        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Ledger/index/*"
 
 functions:
   api:
     handler: lambda-auth.handler
     timeout: 30
+    package:
+      exclude:
+        - lambda-law-embeddings.js
+        - lambda-law-search.js  
+        - lambda-law-summarize.js
     events:
       - http:
           path: /{proxy+}
@@ -106,68 +124,6 @@ functions:
               - X-Amz-User-Agent
             allowCredentials: false
 
-  createLawEmbeddings:
-    handler: lambda-law-embeddings.handler
-    timeout: 900
-    memorySize: 1024
-    environment:
-      OPENSEARCH_ENDPOINT: ${env:OPENSEARCH_ENDPOINT}
-      OPENSEARCH_USERNAME: ${env:OPENSEARCH_USERNAME}
-      OPENSEARCH_PASSWORD: ${env:OPENSEARCH_PASSWORD}
-    events:
-      - http:
-          path: /laws/upload
-          method: POST
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-            allowCredentials: false
-
-  searchLaw:
-    handler: lambda-law-search.handler
-    timeout: 30
-    memorySize: 512
-    environment:
-      OPENSEARCH_ENDPOINT: ${env:OPENSEARCH_ENDPOINT}
-      OPENSEARCH_USERNAME: ${env:OPENSEARCH_USERNAME}
-      OPENSEARCH_PASSWORD: ${env:OPENSEARCH_PASSWORD}
-    events:
-      - http:
-          path: /laws/search
-          method: POST
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-            allowCredentials: false
-
-  summarizeLaw:
-    handler: lambda-law-summarize.handler
-    timeout: 60
-    memorySize: 512
-    events:
-      - http:
-          path: /laws/summarize
-          method: POST
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-            allowCredentials: false
-
 plugins:
   - serverless-dotenv-plugin
 
@@ -180,19 +136,117 @@ custom:
       - AWS_SECRET_ACCESS_KEY
 
 package:
+  individually: true
   exclude:
     - node_modules/**
     - .git/**
     - .env
+    - package-lock.json
     - README.md
     - .gitignore
-  include:
-    - node_modules/**
-    - lambda.js
-    - index.js
-    - lambda-auth.js
-    - lambda-law-embeddings.js
-    - lambda-law-search.js
-    - lambda-law-summarize.js
-    - data/**
-    - package.json
+    - test-*
+    - "*.md"
+    - coverage/**
+    - .nyc_output/**
+  patterns:
+    - '!node_modules/aws-sdk/**'
+    - '!node_modules/.cache/**'
+
+
+resources:
+  Resources:
+    # Tables already created manually in AWS Console
+    # Billing Table for storing invoice and payment records
+    # BillingTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: Billing
+    #     AttributeDefinitions:
+    #       - AttributeName: billing_id
+    #         AttributeType: S
+    #       - AttributeName: case_id
+    #         AttributeType: S
+    #       - AttributeName: client_id
+    #         AttributeType: S
+    #       - AttributeName: status
+    #         AttributeType: S
+    #       - AttributeName: created_at
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: billing_id
+    #         KeyType: HASH
+    #     GlobalSecondaryIndexes:
+    #       - IndexName: case_id-index
+    #         KeySchema:
+    #           - AttributeName: case_id
+    #             KeyType: HASH
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: client_id-index
+    #         KeySchema:
+    #           - AttributeName: client_id
+    #             KeyType: HASH
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: status-index
+    #         KeySchema:
+    #           - AttributeName: status
+    #             KeyType: HASH
+    #           - AttributeName: created_at
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+
+    # Ledger Table for IOLTA-compliant financial tracking
+    # LedgerTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: Ledger
+    #     AttributeDefinitions:
+    #       - AttributeName: ledger_id
+    #         AttributeType: S
+    #       - AttributeName: ledger_account
+    #         AttributeType: S
+    #       - AttributeName: created_at
+    #         AttributeType: S
+    #       - AttributeName: billing_id
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: ledger_id
+    #         KeyType: HASH
+    #     GlobalSecondaryIndexes:
+    #       - IndexName: account_date-index
+    #         KeySchema:
+    #           - AttributeName: ledger_account
+    #             KeyType: HASH
+    #           - AttributeName: created_at
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: billing_id-index
+    #         KeySchema:
+    #           - AttributeName: billing_id
+    #             KeyType: HASH
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5

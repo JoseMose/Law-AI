@@ -25,6 +25,7 @@ out/
 /.env.production.local
 server/.env
 server/.env.*
+server/env-vars.json
 *.env
 !.env.example
 
@@ -102,6 +103,11 @@ temp/
 # AWS
 .aws/
 sam-cli/
+
+# Deployment artifacts
+*.zip
+server/*.zip
+lambda-deploy/*.zip
 
 # Local development
 .env.local

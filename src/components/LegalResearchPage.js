@@ -21,7 +21,6 @@ export default function LegalResearchPage() {
             { id: 'overview', label: 'Overview', icon: '🏠' },
             { id: 'case-law', label: 'Case Law Research', icon: '📚' },
             { id: 'statutes', label: 'Georgia Law Research', icon: '⚖️' },
-            { id: 'documents', label: 'Document Analysis', icon: '🔍' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -57,7 +56,6 @@ export default function LegalResearchPage() {
 
         {activeTab === 'case-law' && <CaseLawResearch />}
         {activeTab === 'statutes' && <StatuteAnalysis />}
-        {activeTab === 'documents' && <DocumentAnalysis />}
       </div>
     </div>
   );
@@ -81,12 +79,10 @@ function CaseLawResearch() {
 
     setIsSearching(true);
     try {
-      const token = sessionStorage.getItem('authToken');
       const response = await fetch(`${API_BASE}/case-law/search`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           query: queryText,
@@ -624,19 +620,6 @@ function StatuteAnalysis() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function DocumentAnalysis() {
-  return (
-    <div className="card">
-      <div className="card-header">
-        <h3 className="card-title">🔍 Document Analysis</h3>
-      </div>
-      <div className="card-body">
-        <p className="text-gray-600">Coming soon...</p>
-      </div>
     </div>
   );
 }

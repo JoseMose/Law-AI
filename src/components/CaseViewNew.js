@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import PDFUpload from '../PDFUpload';
 import ReviewPane from './ReviewPane';
 import CalendarSidebar from './CalendarSidebar';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
 
 // Helper to check for authentication errors and redirect if necessary
 function handleAuthError(response, errorData) {
@@ -156,6 +156,10 @@ export default function CaseView() {
   // Calendar sidebar state
   const [showCalendarSidebar, setShowCalendarSidebar] = useState(true);
 
+  // Case law references state
+  const [caseLawDetails, setCaseLawDetails] = useState([]);
+  const [caseLawLoading, setCaseLawLoading] = useState(false);
+
   const fetchVersionsFor = useCallback(async (docId) => {
     try {
       const token = sessionStorage.getItem('accessToken');
@@ -199,13 +203,21 @@ export default function CaseView() {
   const loadCase = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/cases/${id}`);
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE}/cases/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setCs(data.case || data);
         setSelectedClientId(data.case?.client_id || data.case?.client || data.client_id || data.client || '');
       } else if (response.status === 404) {
         navigate('/cases');
+      } else {
+        console.error('Failed to load case:', response.status, response.statusText);
+        // Don't navigate away on other errors, just show error
       }
     } catch (error) {
       console.error('Error loading case:', error);
@@ -265,14 +277,57 @@ export default function CaseView() {
     }
   }, []);
 
+  // Load case law references for the case
+  const fetchCaseLawDetails = useCallback(async () => {
+    if (!cs?.caseLawReferences || cs.caseLawReferences.length === 0) {
+      setCaseLawDetails([]);
+      return;
+    }
+
+    setCaseLawLoading(true);
+    try {
+      const token = sessionStorage.getItem('accessToken');
+      const details = [];
+
+      for (const ref of cs.caseLawReferences) {
+        try {
+          const response = await fetch(`${API_BASE}/case-law/${ref.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            details.push({
+              ...data.case,
+              addedAt: ref.addedAt,
+              addedBy: ref.addedBy
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching case law ${ref.id}:`, error);
+        }
+      }
+
+      setCaseLawDetails(details);
+    } catch (error) {
+      console.error('Error fetching case law details:', error);
+    } finally {
+      setCaseLawLoading(false);
+    }
+  }, [cs]);
+
   // NOTE: case role/status are read-only in this view and come from the selected client.
 
   // Initialize caseRole when case data loads
   useEffect(() => {
     if (cs) {
       setCaseRole(cs.role || cs.case_role || 'Client');
+      // Load case law details when case data is available
+      fetchCaseLawDetails();
     }
-  }, [cs]);
+  }, [cs, fetchCaseLawDetails]);
 
   // Handle client selection
   const handleClientChange = async (clientId) => {
@@ -699,12 +754,6 @@ export default function CaseView() {
 
           {/* Action Buttons */}
           <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => setShowCalendarSidebar(!showCalendarSidebar)}
-              className={`btn ${showCalendarSidebar ? 'btn-primary' : 'btn-secondary'} flex items-center gap-2`}
-            >
-              📅 {showCalendarSidebar ? 'Hide Calendar' : 'Show Calendar'}
-            </button>
           </div>
 
           {cs.description && (
@@ -932,6 +981,84 @@ export default function CaseView() {
                 }} 
               />
             </div>
+
+            {/* Case Law References Section */}
+            <div className="mt-6">
+              <div className="card">
+                <div className="card-header">
+                  <div className="flex items-center justify-between">
+                    <h3 className="card-title flex items-center gap-2">⚖️ Case Law References</h3>
+                    <span className="text-sm text-gray-500">
+                      {caseLawDetails.length} case{caseLawDetails.length !== 1 ? 's' : ''} saved
+                    </span>
+                  </div>
+                </div>
+
+                <div className="card-body">
+                  {caseLawLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-gray-500 mt-2">Loading case law references...</p>
+                    </div>
+                  ) : caseLawDetails.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-state-icon">⚖️</div>
+                      <h3>No case law references yet</h3>
+                      <p>Save relevant case law from the Legal Research page to build your case precedents.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {caseLawDetails.map((caseLaw, index) => (
+                        <div key={caseLaw.id || index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg text-gray-900 mb-1">
+                                {caseLaw.caseName || caseLaw.title || `Case Law ${caseLaw.id}`}
+                              </h4>
+                              <p className="text-gray-600 text-sm mb-2">
+                                {caseLaw.citation || caseLaw.jurisdiction} • {caseLaw.year || caseLaw.date}
+                              </p>
+                            </div>
+                            <div className="text-right text-sm text-gray-500">
+                              <div>Added {new Date(caseLaw.addedAt).toLocaleDateString()}</div>
+                              {caseLaw.addedBy && <div>by {caseLaw.addedBy}</div>}
+                            </div>
+                          </div>
+
+                          {caseLaw.summary && (
+                            <div className="bg-gray-50 p-3 rounded-md mb-3">
+                              <p className="text-gray-800 text-sm leading-relaxed">{caseLaw.summary}</p>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2">
+                            <Link
+                              to={`/legal-research/case/${caseLaw.id}`}
+                              state={{ caseData: caseLaw }}
+                              className="btn btn-primary btn-sm"
+                            >
+                              View Details
+                            </Link>
+                            <button
+                              onClick={() => {
+                                // Remove case law reference
+                                if (window.confirm('Remove this case law reference from the case?')) {
+                                  // TODO: Implement remove functionality
+                                  alert('Remove functionality not yet implemented');
+                                }
+                              }}
+                              className="btn btn-outline btn-sm text-red-600 hover:bg-red-50"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
             {/* Versions panel slides in as a middle column between documents and right sidebar */}
@@ -1068,7 +1195,7 @@ export default function CaseView() {
               if (window.confirm('Delete this case? This action cannot be undone.')) {
                 try {
                   const token = sessionStorage.getItem('accessToken');
-                  const res = await fetch(`https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases/${id}`, {
+                  const res = await fetch(`${API_BASE}/cases/${id}`, {
                     method: 'DELETE',
                     headers: {
                       'Content-Type': 'application/json',

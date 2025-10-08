@@ -13,9 +13,16 @@ export const AuthProvider = ({ children }) => {
     // Check if user is authenticated on mount
     const checkAuth = async () => {
       try {
-        if (sessionStorage.getItem('accessToken')) {
-          // Skip token verification for now, just trust stored token
-          setUser({ username: sessionStorage.getItem('username') });
+        const storedToken = sessionStorage.getItem('accessToken');
+        const storedUsername = sessionStorage.getItem('username');
+        if (storedToken && storedUsername) {
+          // Check if it's a demo user or regular user
+          const isDemo = storedUsername === 'demo-user' || storedToken === 'demo-token';
+          setUser({ 
+            username: storedUsername, 
+            demo: isDemo,
+            displayName: isDemo ? 'Demo User' : storedUsername
+          });
         }
       } catch (error) {
         console.error('Auth check failed:', error);

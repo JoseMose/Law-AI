@@ -1,0 +1,81 @@
+service: lawapp-auth-${self:provider.stage}
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+
+  environment:
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminInitiateAuth
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminRespondToAuthChallenge
+        - cognito-idp:InitiateAuth
+        - cognito-idp:RespondToAuthChallenge
+        - cognito-idp:GetUser
+        - cognito-idp:SignUp
+        - cognito-idp:ConfirmSignUp
+        - cognito-idp:ForgotPassword
+        - cognito-idp:ConfirmForgotPassword
+        - cognito-idp:UpdateUserPoolClient
+      Resource:
+        - "arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/us-east-1_1kLOdae9J"
+        - "arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/us-east-1_1kLOdae9J/*"
+
+functions:
+  authApi:
+    handler: lambda-auth-simple.handler
+    timeout: 30
+    runtime: nodejs16.x
+    events:
+      - http:
+          path: /auth/{proxy+}
+          method: ANY
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /auth
+          method: ANY
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+
+plugins:
+  - serverless-dotenv-plugin
+
+custom:
+  dotenv:
+    path: .env
+    exclude:
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+
+package:
+  individually: true
+  exclude:
+    - "**"
+  include:
+    - lambda-auth-simple.js

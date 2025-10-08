@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
 
 export default function CaseLawDetailPage() {
   const { caseId } = useParams();
@@ -18,10 +18,19 @@ export default function CaseLawDetailPage() {
   const [isResearching, setIsResearching] = useState(false);
   const [researchNotes, setResearchNotes] = useState('');
 
+  // Case selection dropdown state
+  const [showCaseDropdown, setShowCaseDropdown] = useState(false);
+  const [caseSearchQuery, setCaseSearchQuery] = useState('');
+  const [availableCases, setAvailableCases] = useState([]);
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [isLoadingCases, setIsLoadingCases] = useState(false);
+  const [showCreateCase, setShowCreateCase] = useState(false);
+  const [newCaseTitle, setNewCaseTitle] = useState('');
+
   const loadCaseData = useCallback(async () => {
     try {
       setLoading(true);
-      const token = sessionStorage.getItem('authToken');
+      const token = sessionStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE}/case-law/${caseId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -60,7 +69,7 @@ export default function CaseLawDetailPage() {
   const generateAISummary = async () => {
     setIsGenerating(true);
     try {
-      const token = sessionStorage.getItem('authToken');
+      const token = sessionStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE}/case-law/analyze`, {
         method: 'POST',
         headers: {
@@ -94,7 +103,7 @@ export default function CaseLawDetailPage() {
   const generateKeyHoldings = async () => {
     setIsGenerating(true);
     try {
-      const token = sessionStorage.getItem('authToken');
+      const token = sessionStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE}/case-law/analyze`, {
         method: 'POST',
         headers: {
@@ -139,7 +148,7 @@ export default function CaseLawDetailPage() {
 
     setIsResearching(true);
     try {
-      const token = sessionStorage.getItem('authToken');
+      const token = sessionStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE}/case-law/search`, {
         method: 'POST',
         headers: {
@@ -188,12 +197,20 @@ export default function CaseLawDetailPage() {
   };
 
   const saveToCase = async () => {
-    try {
-      // TODO: Get the actual case ID from user selection
-      const caseId = prompt('Enter the Case ID to save this case law to:');
-      if (!caseId) return;
+    // Fetch cases if not already loaded
+    if (availableCases.length === 0) {
+      await fetchCases();
+    }
+    // Show the dropdown
+    setShowCaseDropdown(true);
+  };
 
-      const token = sessionStorage.getItem('authToken');
+  const handleCaseSelect = async (selectedCaseData) => {
+    try {
+      setSelectedCase(selectedCaseData);
+      setShowCaseDropdown(false);
+
+      const token = sessionStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE}/case-law/save-to-case`, {
         method: 'POST',
         headers: {
@@ -201,7 +218,7 @@ export default function CaseLawDetailPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          caseId: caseId,
+          caseId: selectedCaseData.id,
           caseLawId: caseData.id
         })
       });
@@ -210,10 +227,75 @@ export default function CaseLawDetailPage() {
         throw new Error('Failed to save to case');
       }
 
-      alert('Case law saved to case successfully!');
+      alert(`Case law saved to "${selectedCaseData.title || `Case ${selectedCaseData.id}`}" successfully! Navigate to the case to view it in the Case Law References section.`);
+      setSelectedCase(null);
+      setCaseSearchQuery('');
     } catch (error) {
       console.error('Error saving to case:', error);
       alert('Failed to save case law to case. Please try again.');
+      setSelectedCase(null);
+    }
+  };
+
+  const fetchCases = async () => {
+    setIsLoadingCases(true);
+    try {
+      const token = sessionStorage.getItem('accessToken');
+      console.log('Fetching cases with token:', token ? 'present' : 'missing');
+      const response = await fetch(`${API_BASE}/cases`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Cases API response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Cases API error:', errorText);
+        throw new Error('Failed to fetch cases');
+      }
+
+      const data = await response.json();
+      console.log('Cases data received:', data);
+      setAvailableCases(data.cases || data || []);
+    } catch (error) {
+      console.error('Error fetching cases:', error);
+      alert('Failed to load available cases. Please try again.');
+    } finally {
+      setIsLoadingCases(false);
+    }
+  };
+
+  const createNewCase = async () => {
+    if (!newCaseTitle.trim()) return;
+
+    try {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE}/cases`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newCaseTitle.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create case');
+      }
+
+      const data = await response.json();
+      console.log('Created new case:', data);
+
+      // Add the new case to available cases and select it
+      setAvailableCases(prev => [...prev, data.case || data]);
+      handleCaseSelect(data.case || data);
+
+    } catch (error) {
+      console.error('Error creating case:', error);
+      alert('Failed to create new case. Please try again.');
     }
   };
 
@@ -284,6 +366,110 @@ export default function CaseLawDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Case Selection Dropdown Modal */}
+        {showCaseDropdown && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Select Case to Save To</h3>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/cases"
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                    onClick={() => setShowCaseDropdown(false)}
+                  >
+                    Manage Cases →
+                  </Link>
+                  <button
+                    onClick={() => setShowCaseDropdown(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search cases..."
+                  value={caseSearchQuery}
+                  onChange={(e) => setCaseSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto">
+                {isLoadingCases ? (
+                  <div className="text-center py-4 text-gray-500">Loading cases...</div>
+                ) : (
+                  <div className="space-y-2">
+                    {availableCases
+                      .filter(caseItem =>
+                        caseItem.title?.toLowerCase().includes(caseSearchQuery.toLowerCase()) ||
+                        caseItem.id?.toLowerCase().includes(caseSearchQuery.toLowerCase())
+                      )
+                      .map((caseItem) => (
+                        <button
+                          key={caseItem.id}
+                          onClick={() => handleCaseSelect(caseItem)}
+                          className="w-full text-left p-3 border border-gray-200 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <div className="font-medium">{caseItem.title || `Case ${caseItem.id}`}</div>
+                          {caseItem.description && (
+                            <div className="text-sm text-gray-600 mt-1">{caseItem.description}</div>
+                          )}
+                        </button>
+                      ))}
+                    {availableCases.length === 0 && !isLoadingCases && (
+                      <div className="text-center py-4">
+                        <div className="text-gray-500 mb-3">No cases available</div>
+                        {!showCreateCase ? (
+                          <button
+                            onClick={() => setShowCreateCase(true)}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            ➕ Create New Case
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Enter case title..."
+                              value={newCaseTitle}
+                              onChange={(e) => setNewCaseTitle(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              onKeyPress={(e) => e.key === 'Enter' && createNewCase()}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={createNewCase}
+                                disabled={!newCaseTitle.trim()}
+                                className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
+                              >
+                                Create & Save
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowCreateCase(false);
+                                  setNewCaseTitle('');
+                                }}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Content */}

@@ -1,27 +1,32 @@
 const { Client: OpenSearchClient } = require('@opensearch-project/opensearch');
 const { InvokeModelCommand, BedrockRuntimeClient } = require('@aws-sdk/client-bedrock-runtime');
+const { AwsSigv4Signer } = require('@opensearch-project/opensearch/aws');
+const AWS = require('aws-sdk');
 
 const bedrockClient = new BedrockRuntimeClient({ region: 'us-west-2' });
 
-// Initialize OpenSearch client
+// Initialize OpenSearch client for Serverless
 let osClient = null;
 
 function getOpenSearchClient() {
   if (!osClient) {
-    const domainEndpoint = process.env.OPENSEARCH_ENDPOINT;
-    if (!domainEndpoint) {
-      throw new Error('OPENSEARCH_ENDPOINT environment variable is required');
-    }
+    const endpoint = process.env.OPENSEARCH_ENDPOINT || 'https://ollvyvig54khnceyam0c.us-west-2.aoss.amazonaws.com';
+    const region = process.env.AWS_REGION || 'us-west-2';
+    
+    console.log('Creating OpenSearch Serverless client:', { endpoint, region });
+
+    // Configure AWS SDK for IAM authentication
+    AWS.config.update({ region: region });
 
     osClient = new OpenSearchClient({
-      node: `https://${domainEndpoint}`,
-      auth: {
-        username: process.env.OPENSEARCH_USERNAME || 'admin',
-        password: process.env.OPENSEARCH_PASSWORD || 'TempPass123!'
-      },
-      ssl: {
-        rejectUnauthorized: false
-      }
+      ...AwsSigv4Signer({
+        credentials: AWS.config.credentials,
+        region: region,
+        service: 'aoss'  // OpenSearch Serverless service
+      }),
+      node: endpoint,
+      requestTimeout: 120000,
+      pingTimeout: 60000
     });
   }
   return osClient;
@@ -72,15 +77,12 @@ async function searchStatutes(queryEmbedding, practiceArea = null, limit = 10) {
       }
     },
     _source: [
-      'title_number',
-      'chapter_number',
-      'section_number',
-      'section_name',
-      'full_text',
-      'source_url',
-      'effective_date',
-      'practice_area',
-      'metadata'
+      'title',
+      'citation',
+      'fullText',
+      'sourceUrl',
+      'effectiveDate',
+      'practiceArea'
     ]
   };
 
@@ -101,7 +103,7 @@ async function searchStatutes(queryEmbedding, practiceArea = null, limit = 10) {
         filter: [
           {
             term: {
-              practice_area: practiceArea
+              practiceArea: practiceArea
             }
           }
         ]
@@ -110,25 +112,30 @@ async function searchStatutes(queryEmbedding, practiceArea = null, limit = 10) {
   }
 
   const response = await client.search({
-    index: 'georgia-law-vectors',
+    index: 'georgia-law-serverless-statutes',
     body: searchQuery
   });
 
-  return response.body.hits.hits.map(hit => ({
-    id: hit._id,
-    score: hit._score,
-    statute: {
-      title_number: hit._source.title_number,
-      chapter_number: hit._source.chapter_number,
-      section_number: hit._source.section_number,
-      section_name: hit._source.section_name,
-      full_text: hit._source.full_text,
-      source_url: hit._source.source_url,
-      effective_date: hit._source.effective_date,
-      practice_area: hit._source.practice_area
-    },
-    metadata: hit._source.metadata
-  }));
+  return response.body.hits.hits.map(hit => {
+    // Parse citation to extract components if needed
+    const citationMatch = hit._source.citation ? hit._source.citation.match(/§\s*(\d+)-(\d+)-(\d+)/) : null;
+    
+    return {
+      id: hit._id,
+      score: hit._score,
+      statute: {
+        title_number: citationMatch ? citationMatch[1] : '',
+        chapter_number: citationMatch ? citationMatch[2] : '',
+        section_number: citationMatch ? citationMatch[3] : '',
+        section_name: hit._source.title,
+        full_text: hit._source.fullText,
+        source_url: hit._source.sourceUrl,
+        effective_date: hit._source.effectiveDate,
+        practice_area: hit._source.practiceArea,
+        citation: hit._source.citation
+      }
+    };
+  });
 }
 
 function formatCitation(statute) {
