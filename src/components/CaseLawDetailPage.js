@@ -22,7 +22,6 @@ export default function CaseLawDetailPage() {
   const [showCaseDropdown, setShowCaseDropdown] = useState(false);
   const [caseSearchQuery, setCaseSearchQuery] = useState('');
   const [availableCases, setAvailableCases] = useState([]);
-  const [selectedCase, setSelectedCase] = useState(null);
   const [isLoadingCases, setIsLoadingCases] = useState(false);
   const [showCreateCase, setShowCreateCase] = useState(false);
   const [newCaseTitle, setNewCaseTitle] = useState('');
@@ -207,7 +206,6 @@ export default function CaseLawDetailPage() {
 
   const handleCaseSelect = async (selectedCaseData) => {
     try {
-      setSelectedCase(selectedCaseData);
       setShowCaseDropdown(false);
 
       const token = sessionStorage.getItem('accessToken');
@@ -228,12 +226,10 @@ export default function CaseLawDetailPage() {
       }
 
       alert(`Case law saved to "${selectedCaseData.title || `Case ${selectedCaseData.id}`}" successfully! Navigate to the case to view it in the Case Law References section.`);
-      setSelectedCase(null);
       setCaseSearchQuery('');
     } catch (error) {
-      console.error('Error saving to case:', error);
+      console.error('Error saving case law to case:', error);
       alert('Failed to save case law to case. Please try again.');
-      setSelectedCase(null);
     }
   };
 

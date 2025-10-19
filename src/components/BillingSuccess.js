@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
@@ -10,20 +10,7 @@ const BillingSuccess = () => {
   const [error, setError] = useState(null);
   const [paymentDetails, setPaymentDetails] = useState(null);
 
-  useEffect(() => {
-    const sessionId = searchParams.get('session_id');
-    
-    if (!sessionId) {
-      setError('No session ID provided');
-      setLoading(false);
-      return;
-    }
-
-    // Process the successful payment
-    processPayment(sessionId);
-  }, [searchParams]);
-
-  const processPayment = async (sessionId) => {
+  const processPayment = useCallback(async (sessionId) => {
     try {
       setLoading(true);
       
@@ -54,7 +41,20 @@ const BillingSuccess = () => {
       setError(err.message);
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    
+    if (!sessionId) {
+      setError('No session ID provided');
+      setLoading(false);
+      return;
+    }
+
+    // Process the successful payment
+    processPayment(sessionId);
+  }, [searchParams, processPayment]);
 
   if (loading) {
     return (

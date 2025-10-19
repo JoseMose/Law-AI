@@ -11,7 +11,7 @@ const SignInPage = () => {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, confirmSignUp, setUser } = useAuth();
+  const { signIn, signUp, confirmSignUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {

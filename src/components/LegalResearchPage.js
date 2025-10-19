@@ -291,7 +291,6 @@ function StatuteAnalysis() {
   const [practiceArea, setPracticeArea] = useState('all');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedStatute, setSelectedStatute] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
 
@@ -314,11 +313,9 @@ function StatuteAnalysis() {
 
     setIsSearching(true);
     setSearchResults([]);
-    setSelectedStatute(null);
     setAnalysis(null);
 
     try {
-      const token = sessionStorage.getItem('authToken');
       console.log('Making request to:', `${API_BASE}/laws`);
       console.log('Request payload:', {
         query: searchQuery,
@@ -360,11 +357,9 @@ function StatuteAnalysis() {
 
   const handleAnalyze = async (statute) => {
     setIsAnalyzing(true);
-    setSelectedStatute(statute);
     setAnalysis(null);
 
     try {
-      const token = sessionStorage.getItem('authToken');
       const response = await fetch(`${API_BASE}/laws/summarize`, {
         method: 'POST',
         headers: {

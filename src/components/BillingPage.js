@@ -149,7 +149,7 @@ const BillingPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, cases, clients]);
+  }, [filters, cases]);
 
   useEffect(() => {
     loadClientsAndCases();
