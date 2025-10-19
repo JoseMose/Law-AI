@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
+
 const CasesPage = () => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ const CasesPage = () => {
   const loadCases = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases', {
+      const response = await fetch(`${API_BASE}/auth/cases`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`,
@@ -40,17 +42,27 @@ const CasesPage = () => {
       if (response.ok) {
         const data = await response.json();
         // API may return an array or an object containing the array
+        let casesArray = [];
         if (Array.isArray(data)) {
-          setCases(data);
+          casesArray = data;
         } else if (Array.isArray(data.cases)) {
-          setCases(data.cases);
+          casesArray = data.cases;
         } else if (Array.isArray(data.data)) {
-          setCases(data.data);
+          casesArray = data.data;
         } else {
           // Fallback: try to extract any array value
           const arr = Object.values(data).find(v => Array.isArray(v));
-          setCases(arr || []);
+          casesArray = arr || [];
         }
+        
+        // Compute document and case law counts from arrays
+        const casesWithCounts = casesArray.map(c => ({
+          ...c,
+          documentCount: (c.documents || []).length,
+          caseLawCount: (c.caseLawReferences || c.caseLaw || []).length
+        }));
+        
+        setCases(casesWithCounts);
       }
     } catch (error) {
       console.error('Error loading cases:', error);
@@ -64,7 +76,7 @@ const CasesPage = () => {
 
     try {
       setCreating(true);
-      const response = await fetch('https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases', {
+      const response = await fetch(`${API_BASE}/auth/cases`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +118,7 @@ const CasesPage = () => {
     
     setDeletingCaseId(caseId);
     try {
-      const response = await fetch(`https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev/cases/${caseId}`, {
+      const response = await fetch(`${API_BASE}/auth/cases/${caseId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

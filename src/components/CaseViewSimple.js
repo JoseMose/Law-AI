@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 export default function CaseView() {
   const { id } = useParams();

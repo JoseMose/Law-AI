@@ -1,0 +1,17 @@
+{
+  "Variables": {
+    "TEXTRACT_ENABLED": "true",
+    "PORT": "3001",
+    "COGNITO_CLIENT_SECRET": "17v87pv7glrr8pu77lq1ltbnqouu5vkabhdt3if2rorvg7gd92pr",
+    "COGNITO_AUTO_UPDATE_CLIENT": "false", 
+    "BEDROCK_ENABLED": "true",
+    "S3_BUCKET_NAME": "contractfiles1",
+    "BEDROCK_MODEL": "anthropic.claude-3-opus-20240229-v1:0",
+    "COGNITO_CLIENT_ID": "2lka4b7mcpi24mq7sa45uvq49u",
+    "COGNITO_USER_POOL_ID": "us-east-1_1kLOdae9J",
+    "BEDROCK_API_KEY": "ABSKQmVkcm9ja0FQSUtleS1xeHV0LWF0LTY2MzAwMzQ3NjEwNDoxcmg3dEdkclNJTXdSSGF3anNhWUgrQWU5blNJS2dJNVVEOWk0LytTT3NJb2dhdjFzeDVRTGRlbU1nND0==",
+    "OPENSEARCH_ENDPOINT": "zjn0tuowkjvfrn3xj4p3.us-east-1.aoss.amazonaws.com",
+    "OPENSEARCH_USERNAME": "",
+    "OPENSEARCH_PASSWORD": ""
+  }
+}

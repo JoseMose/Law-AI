@@ -1,0 +1,90 @@
+service: law-ai-modular
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  timeout: 30
+  memorySize: 512
+  
+  environment:
+    S3_BUCKET: contractfiles1
+    S3_BUCKET_NAME: contractfiles1
+    AWS_REGION: us-east-1
+    COGNITO_USER_POOL_ID: us-east-1_aIKpGUemJ
+    COGNITO_CLIENT_ID: 35lg87vkonlnk8n8rk1levbs5b
+    COGNITO_CLIENT_SECRET: 14mdgpnodi63436nnmdm8l6cl5mp5g468mcvtllh03v09sqre7mv
+    
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+        - s3:ListBucket
+        - s3:ListObjectsV2
+      Resource:
+        - "arn:aws:s3:::contractfiles1"
+        - "arn:aws:s3:::contractfiles1/*"
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminInitiateAuth
+        - cognito-idp:AdminSetUserPassword
+        - cognito-idp:AdminConfirmSignUp
+        - cognito-idp:AdminUpdateUserAttributes
+        - cognito-idp:ListUsers
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminDeleteUser
+      Resource: 
+        - "arn:aws:cognito-idp:us-east-1:*:userpool/us-east-1_aIKpGUemJ"
+
+functions:
+  lawAiModular:
+    handler: lambda-modular.handler
+    name: ${self:provider.stage}-law-ai-modular
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+              - Accept
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /
+          method: ANY
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+              - Accept
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+
+package:
+  patterns:
+    - lambda-modular.js
+    - auth-handlers.js
+    - s3-handlers.js  
+    - case-handlers.js
+    - node_modules/@aws-sdk/**
+    - '!node_modules/**'
+    - node_modules/@aws-sdk/**
+    
+# plugins:
+  # - serverless-offline

@@ -83,37 +83,7 @@ const SignInPage = () => {
 
           {/* Form */}
           <div className="card-body">
-            {/* Demo Access Button */}
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-sm font-semibold text-blue-800 mb-2">🚀 Quick Demo Access</h3>
-              <p className="text-xs text-blue-600 mb-3">
-                Skip authentication and try the case law search feature immediately
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  // Set demo user and navigate to dashboard
-                  setUser({ username: 'demo-user', demo: true });
-                  sessionStorage.setItem('username', 'demo-user');
-                  sessionStorage.setItem('accessToken', 'demo-token');
-                  navigate('/dashboard');
-                }}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                🎯 Try Case Law Search Now
-              </button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or sign in with account</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {showConfirm ? (
                 <div>
                   <label htmlFor="code" className="form-label text-center">
@@ -149,11 +119,6 @@ const SignInPage = () => {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                     />
-                    {!isSignUp && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                        <strong>Note:</strong> Authentication system is currently unavailable. Use demo access instead.
-                      </div>
-                    )}
                   </div>
 
                   {isSignUp && (
@@ -201,9 +166,6 @@ const SignInPage = () => {
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   <div className="font-medium mb-1">Authentication Error</div>
                   <div>{error}</div>
-                  <div className="text-xs text-red-600 mt-2">
-                    💡 <strong>Tip:</strong> Use the demo access button above to try the app without signing in
-                  </div>
                 </div>
               )}
 

@@ -1,101 +1,51 @@
-service: lawyer-billing-system
+service: lawai-backend-2025
+
+frameworkVersion: '^4.0.0'
 
 provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
   stage: ${opt:stage, 'dev'}
-  
-  apiGateway:
-    binaryMediaTypes:
-      - 'application/pdf'
-      - 'application/octet-stream'
-      - '*/*'
-  
+  timeout: 29
+  memorySize: 1024
+
   environment:
-    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
-    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
-    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
-    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
-    TEXTRACT_ENABLED: ${env:TEXTRACT_ENABLED}
-    BEDROCK_ENABLED: ${env:BEDROCK_ENABLED}
-    BEDROCK_MODEL: ${env:BEDROCK_MODEL}
-    BEDROCK_API_KEY: ${env:BEDROCK_API_KEY}
-    COGNITO_AUTO_UPDATE_CLIENT: ${env:COGNITO_AUTO_UPDATE_CLIENT}
-    OPENSEARCH_ENDPOINT: ${env:OPENSEARCH_ENDPOINT}
-    OPENSEARCH_USERNAME: ${env:OPENSEARCH_USERNAME}
-    OPENSEARCH_PASSWORD: ${env:OPENSEARCH_PASSWORD}
-  
+    S3_BUCKET: contractfiles1
+    S3_BUCKET_NAME: contractfiles1
+    COGNITO_USER_POOL_ID: us-east-1_aIKpGUemJ
+    COGNITO_CLIENT_ID: 35lg87vkonlnk8n8rk1levbs5b
+    COGNITO_CLIENT_SECRET: 14mdgpnodi63436nnmdm8l6cl5mp5g468mcvtllh03v09sqre7mv
+
   iamRoleStatements:
     - Effect: Allow
       Action:
         - s3:GetObject
         - s3:PutObject
         - s3:DeleteObject
-        - s3:GetObjectVersion
+        - s3:ListBucket
+        - s3:ListObjectsV2
       Resource:
+        - "arn:aws:s3:::contractfiles1"
         - "arn:aws:s3:::contractfiles1/*"
     - Effect: Allow
       Action:
-        - s3:ListBucket
-      Resource:
-        - "arn:aws:s3:::contractfiles1"
-    - Effect: Allow
-      Action:
+        - cognito-idp:AdminCreateUser
         - cognito-idp:AdminInitiateAuth
+        - cognito-idp:AdminConfirmSignUp
+        - cognito-idp:AdminUpdateUserAttributes
+        - cognito-idp:ListUsers
         - cognito-idp:AdminGetUser
-        - cognito-idp:AdminRespondToAuthChallenge
-        - cognito-idp:InitiateAuth
-        - cognito-idp:RespondToAuthChallenge
-        - cognito-idp:GetUser
-        - cognito-idp:SignUp
-        - cognito-idp:ConfirmSignUp
-        - cognito-idp:ForgotPassword
-        - cognito-idp:ConfirmForgotPassword
-        - cognito-idp:UpdateUserPoolClient
+        - cognito-idp:AdminDeleteUser
       Resource:
-        - "arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/us-east-1_1kLOdae9J"
-        - "arn:aws:cognito-idp:${aws:region}:${aws:accountId}:userpool/us-east-1_1kLOdae9J/*"
-    - Effect: Allow
-      Action:
-        - textract:StartDocumentTextDetection
-        - textract:GetDocumentTextDetection
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - bedrock:InvokeModel
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - es:ESHttpGet
-        - es:ESHttpPost
-        - es:ESHttpPut
-        - es:ESHttpDelete
-        - es:ESHttpHead
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource:
-        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Billing"
-        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Ledger"
-        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Billing/index/*"
-        - "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/Ledger/index/*"
+        - "arn:aws:cognito-idp:us-east-1:*:userpool/us-east-1_aIKpGUemJ"
 
 functions:
-  api:
+  lawAiBackend:
     handler: lambda-auth.handler
-    timeout: 30
-    package:
-      exclude:
-        - lambda-law-embeddings.js
-        - lambda-law-search.js  
-        - lambda-law-summarize.js
+    name: ${self:provider.stage}-lawai-backend-2025
+    layers:
+      - {Ref: AwsSdkLayerLambdaLayer}
     events:
       - http:
           path: /{proxy+}
@@ -104,8 +54,9 @@ functions:
             origin: '*'
             headers:
               - Content-Type
-              - X-Amz-Date
               - Authorization
+              - Accept
+              - X-Amz-Date
               - X-Api-Key
               - X-Amz-Security-Token
               - X-Amz-User-Agent
@@ -117,136 +68,30 @@ functions:
             origin: '*'
             headers:
               - Content-Type
-              - X-Amz-Date
               - Authorization
+              - Accept
+              - X-Amz-Date
               - X-Api-Key
               - X-Amz-Security-Token
               - X-Amz-User-Agent
             allowCredentials: false
 
-plugins:
-  - serverless-dotenv-plugin
-
-custom:
-  dotenv:
-    path: .env
-    exclude:
-      - AWS_REGION
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
+layers:
+  awsSdkLayer:
+    path: lambda-layer
+    name: ${self:provider.stage}-aws-sdk-layer
+    description: AWS SDK dependencies for Lambda
+    compatibleRuntimes:
+      - nodejs20.x
 
 package:
-  individually: true
   exclude:
-    - node_modules/**
-    - .git/**
-    - .env
-    - package-lock.json
-    - README.md
-    - .gitignore
-    - test-*
-    - "*.md"
-    - coverage/**
-    - .nyc_output/**
-  patterns:
-    - '!node_modules/aws-sdk/**'
-    - '!node_modules/.cache/**'
-
-
-resources:
-  Resources:
-    # Tables already created manually in AWS Console
-    # Billing Table for storing invoice and payment records
-    # BillingTable:
-    #   Type: AWS::DynamoDB::Table
-    #   Properties:
-    #     TableName: Billing
-    #     AttributeDefinitions:
-    #       - AttributeName: billing_id
-    #         AttributeType: S
-    #       - AttributeName: case_id
-    #         AttributeType: S
-    #       - AttributeName: client_id
-    #         AttributeType: S
-    #       - AttributeName: status
-    #         AttributeType: S
-    #       - AttributeName: created_at
-    #         AttributeType: S
-    #     KeySchema:
-    #       - AttributeName: billing_id
-    #         KeyType: HASH
-    #     GlobalSecondaryIndexes:
-    #       - IndexName: case_id-index
-    #         KeySchema:
-    #           - AttributeName: case_id
-    #             KeyType: HASH
-    #         Projection:
-    #           ProjectionType: ALL
-    #         ProvisionedThroughput:
-    #           ReadCapacityUnits: 5
-    #           WriteCapacityUnits: 5
-    #       - IndexName: client_id-index
-    #         KeySchema:
-    #           - AttributeName: client_id
-    #             KeyType: HASH
-    #         Projection:
-    #           ProjectionType: ALL
-    #         ProvisionedThroughput:
-    #           ReadCapacityUnits: 5
-    #           WriteCapacityUnits: 5
-    #       - IndexName: status-index
-    #         KeySchema:
-    #           - AttributeName: status
-    #             KeyType: HASH
-    #           - AttributeName: created_at
-    #             KeyType: RANGE
-    #         Projection:
-    #           ProjectionType: ALL
-    #         ProvisionedThroughput:
-    #           ReadCapacityUnits: 5
-    #           WriteCapacityUnits: 5
-    #     ProvisionedThroughput:
-    #       ReadCapacityUnits: 5
-    #       WriteCapacityUnits: 5
-
-    # Ledger Table for IOLTA-compliant financial tracking
-    # LedgerTable:
-    #   Type: AWS::DynamoDB::Table
-    #   Properties:
-    #     TableName: Ledger
-    #     AttributeDefinitions:
-    #       - AttributeName: ledger_id
-    #         AttributeType: S
-    #       - AttributeName: ledger_account
-    #         AttributeType: S
-    #       - AttributeName: created_at
-    #         AttributeType: S
-    #       - AttributeName: billing_id
-    #         AttributeType: S
-    #     KeySchema:
-    #       - AttributeName: ledger_id
-    #         KeyType: HASH
-    #     GlobalSecondaryIndexes:
-    #       - IndexName: account_date-index
-    #         KeySchema:
-    #           - AttributeName: ledger_account
-    #             KeyType: HASH
-    #           - AttributeName: created_at
-    #             KeyType: RANGE
-    #         Projection:
-    #           ProjectionType: ALL
-    #         ProvisionedThroughput:
-    #           ReadCapacityUnits: 5
-    #           WriteCapacityUnits: 5
-    #       - IndexName: billing_id-index
-    #         KeySchema:
-    #           - AttributeName: billing_id
-    #             KeyType: HASH
-    #         Projection:
-    #           ProjectionType: ALL
-    #         ProvisionedThroughput:
-    #           ReadCapacityUnits: 5
-    #           WriteCapacityUnits: 5
-    #     ProvisionedThroughput:
-    #       ReadCapacityUnits: 5
-    #       WriteCapacityUnits: 5
+    - '**'
+  include:
+    - lambda-auth.js
+    - auth-handlers.js
+    - s3-operations.js
+    - helpers.js
+    - aws-clients.js
+  excludeDevDependencies: true
+  individually: false

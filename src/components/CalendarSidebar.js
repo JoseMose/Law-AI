@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 // Event type colors
 const EVENT_TYPE_COLORS = {
@@ -36,6 +36,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
 
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded events:', data.events);
         setEvents(data.events || []);
       } else {
         // Mock data for testing when API doesn't exist yet
@@ -97,8 +98,16 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
   const getEventsForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     return events.filter(event => {
-      const eventDate = new Date(event.date).toISOString().split('T')[0];
-      return eventDate === dateStr;
+      try {
+        if (!event.date) return false;
+        const eventDateObj = new Date(event.date);
+        if (isNaN(eventDateObj.getTime())) return false;
+        const eventDate = eventDateObj.toISOString().split('T')[0];
+        return eventDate === dateStr;
+      } catch (error) {
+        console.warn('Invalid date for event:', event, error);
+        return false;
+      }
     });
   };
 
@@ -109,8 +118,25 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
     thirtyDaysFromNow.setDate(today.getDate() + 30);
 
     return events
-      .filter(event => new Date(event.date) >= today && new Date(event.date) <= thirtyDaysFromNow)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .filter(event => {
+        try {
+          if (!event.date) return false;
+          const eventDate = new Date(event.date);
+          return !isNaN(eventDate.getTime()) && eventDate >= today && eventDate <= thirtyDaysFromNow;
+        } catch (error) {
+          console.warn('Invalid date for upcoming event:', event, error);
+          return false;
+        }
+      })
+      .sort((a, b) => {
+        try {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA - dateB;
+        } catch (error) {
+          return 0;
+        }
+      })
       .slice(0, 10); // Show next 10 upcoming events
   };
 
@@ -296,7 +322,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                             <h5 className="font-medium" style={{ color: 'white' }}>{event.title}</h5>
                           </div>
                           <div className="text-sm mb-1" style={{ color: 'white' }}>
-                            {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {event.date ? new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No time set'}
                           </div>
                           {event.location && (
                             <div className="text-sm mb-1" style={{ color: 'white' }}>
@@ -358,7 +384,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate" style={{ color: 'white' }}>{event.title}</div>
                       <div style={{ color: 'white' }}>
-                        {new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {event.date ? `${new Date(event.date).toLocaleDateString()} at ${new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No date set'}
                       </div>
                     </div>
                   </div>
@@ -391,7 +417,7 @@ const CalendarSidebar = ({ caseId, clientId, isOpen, onToggle }) => {
 const EventModal = ({ event, onSave, onClose }) => {
   const [formData, setFormData] = useState({
     title: event?.title || '',
-    date: event?.date ? new Date(event.date).toISOString().slice(0, 16) : '',
+    date: event?.date ? (new Date(event.date).toISOString().slice(0, 16) || '') : '',
     type: event?.type || 'Hearing',
     location: event?.location || '',
     notes: event?.notes || ''

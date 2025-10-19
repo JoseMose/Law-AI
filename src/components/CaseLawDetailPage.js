@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 export default function CaseLawDetailPage() {
   const { caseId } = useParams();

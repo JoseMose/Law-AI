@@ -151,7 +151,40 @@ body,html,#root{height:100%;margin:0}
 .emptyState{padding:20px;text-align:center;color:var(--muted)}
 
 /* subtle form styling */
-input[type="text"], input[type="file"], textarea{border:1px solid rgba(15,23,42,0.06);padding:10px;border-radius:8px}
+input[type="text"], input[type="file"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], textarea, select {
+  border: 1px solid rgba(15,23,42,0.06);
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--card);
+  color: #0f172a;
+  font-family: inherit;
+}
+
+input[type="text"]:focus, 
+input[type="file"]:focus, 
+input[type="number"]:focus, 
+input[type="date"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+textarea:focus, 
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Ensure option elements match app theme */
+option {
+  color: #0f172a;
+  background: var(--card);
+  padding: 8px;
+}
+
+/* Placeholder text styling */
+::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
 
 .search{display:flex;gap:8px}
 

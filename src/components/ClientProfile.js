@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 const ClientProfile = () => {
   const { id } = useParams();
@@ -14,6 +14,8 @@ const ClientProfile = () => {
   const [notes, setNotes] = useState([]);
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [newNoteText, setNewNoteText] = useState('');
+  const [linkedCases, setLinkedCases] = useState([]);
+  const [loadingCases, setLoadingCases] = useState(false);
 
   // Helper function to get current user info
   const getCurrentUser = () => {
@@ -66,8 +68,7 @@ const ClientProfile = () => {
     { value: 'vip-priority', label: 'VIP / Priority – high-value or priority client.' }
   ];
   const [editForm, setEditForm] = useState({
-    first_name: '',
-    last_name: '',
+    name: '',
     email: '',
     phone: '',
     company_name: '',
@@ -93,7 +94,8 @@ const ClientProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClient(data.client);
+        // Handle both formats: direct client object or wrapped in success response
+        setClient(data.client || data);
       } else {
         console.error('Failed to fetch client');
       }
@@ -142,12 +144,46 @@ const ClientProfile = () => {
     }
   }, [activeTab, fetchDocuments]);
 
+  // Fetch linked cases when cases tab is active
+  useEffect(() => {
+    if (activeTab === 'cases' && client && (client.linked_cases || []).length > 0) {
+      const fetchLinkedCases = async () => {
+        setLoadingCases(true);
+        try {
+          const token = sessionStorage.getItem('accessToken');
+          const response = await fetch(`${API_BASE}/cases`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const allCases = data.cases || [];
+            // Filter cases that are linked to this client
+            const clientCases = allCases.filter(c => 
+              (client.linked_cases || []).includes(c.id) ||
+              c.clientId === client.id ||
+              c.client_id === client.id ||
+              c.client === client.id
+            );
+            setLinkedCases(clientCases);
+          }
+        } catch (error) {
+          console.error('Error fetching linked cases:', error);
+        } finally {
+          setLoadingCases(false);
+        }
+      };
+      fetchLinkedCases();
+    }
+  }, [activeTab, client]);
+
   // Populate edit form when client data loads
   useEffect(() => {
     if (client) {
       setEditForm({
-        first_name: client.first_name || '',
-        last_name: client.last_name || '',
+        name: client.name || '',
         email: client.email || '',
         phone: client.phone || '',
         company_name: client.company_name || '',
@@ -270,7 +306,7 @@ const ClientProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClient(data.client);
+        setClient(data);
         setIsEditing(false); // Exit edit mode after successful update
       } else {
         console.error('Failed to update client');
@@ -304,7 +340,7 @@ const ClientProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClient(data.client);
+        setClient(data);
       } else {
         console.error('Failed to update client status');
       }
@@ -346,7 +382,7 @@ const ClientProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClient(data.client);
+        setClient(data);
         setNotes(updatedNotes);
         setNewNoteText('');
       } else {
@@ -383,7 +419,7 @@ const ClientProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClient(data.client);
+        setClient(data);
         setNotes(updatedNotes);
         setEditingNoteId(null);
       } else {
@@ -416,13 +452,46 @@ const ClientProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClient(data.client);
+        setClient(data);
         setNotes(updatedNotes);
       } else {
         console.error('Failed to delete note');
       }
     } catch (error) {
       console.error('Error deleting note:', error);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    const clientName = client.name || `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'this client';
+    
+    if (!window.confirm(`Are you sure you want to delete ${clientName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    if (!window.confirm('This will permanently delete the client and all associated data. Are you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE}/clients/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Redirect to clients page after successful deletion
+        window.location.href = '/clients';
+      } else {
+        const error = await response.json().catch(() => ({}));
+        alert('Failed to delete client: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      alert('Failed to delete client: ' + error.message);
     }
   };
 
@@ -456,28 +525,39 @@ const ClientProfile = () => {
         <div className="flex items-center gap-6">
           <div className="avatar avatar-xl">
             <span className="avatar-initials">
-              {client.first_name[0]}{client.last_name[0]}
+              {(client.name || `${client.first_name || ''} ${client.last_name || ''}` || 'C').split(' ').filter(n => n).map(n => n[0]).join('').toUpperCase() || 'C'}
             </span>
           </div>
           <div className="flex-1">
-            <h1 className="page-title">{client.full_name}</h1>
+            <h1 className="page-title">{client.name || `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'Unknown Client'}</h1>
             <p className="page-description">{client.company_name || 'Individual Client'}</p>
             <div className="flex items-center gap-4 mt-2">
               <span className={`status-badge ${getStatusClass(client.status)}`}>
                 {getStatusLabel(client.status)}
               </span>
-              <span className="text-sm text-muted">
-                Client since {new Date(client.created_at).toLocaleDateString()}
-              </span>
+              {(client.created_at || client.createdAt) && (
+                <span className="text-sm text-muted">
+                  Client since {new Date(client.created_at || client.createdAt).toLocaleDateString()}
+                </span>
+              )}
             </div>
           </div>
         </div>
-        <Link
-          to="/clients"
-          className="btn btn-outline"
-        >
-          ← Back to Clients
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={handleDeleteClient}
+            className="btn btn-outline text-red-600 hover:bg-red-50 border-red-300"
+            title="Delete Client"
+          >
+            🗑️ Delete Client
+          </button>
+          <Link
+            to="/clients"
+            className="btn btn-outline"
+          >
+            ← Back to Clients
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -587,23 +667,13 @@ const ClientProfile = () => {
               ) : (
                 // Edit view
                 <form onSubmit={handleUpdateClient} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <label className="form-label">First Name *</label>
+                      <label className="form-label">Full Name *</label>
                       <input
                         type="text"
-                        value={editForm.first_name}
-                        onChange={(e) => setEditForm({...editForm, first_name: e.target.value})}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="form-label">Last Name *</label>
-                      <input
-                        type="text"
-                        value={editForm.last_name}
-                        onChange={(e) => setEditForm({...editForm, last_name: e.target.value})}
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                         className="form-input"
                         required
                       />
@@ -855,22 +925,59 @@ const ClientProfile = () => {
           {activeTab === 'cases' && (
             <div>
               <h2 className="text-xl font-semibold mb-4">Linked Cases</h2>
-              {client.linked_cases.length > 0 ? (
+              {loadingCases ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-500 mt-2">Loading cases...</p>
+                </div>
+              ) : linkedCases.length > 0 ? (
                 <div className="space-y-3">
-                  {client.linked_cases.map((caseId) => (
-                    <div key={caseId} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                      <span className="font-medium">Case {caseId}</span>
-                      <Link
-                        to={`/case/${caseId}`}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        View Case →
-                      </Link>
+                  {linkedCases.map((caseItem) => (
+                    <div key={caseItem.id} className="card hover:shadow-md transition-shadow">
+                      <div className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-1">{caseItem.title || `Case ${caseItem.id}`}</h3>
+                            {caseItem.description && (
+                              <p className="text-gray-600 text-sm mb-2">{caseItem.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                caseItem.status === 'Active' || caseItem.status === 'active' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : caseItem.status === 'Closed' || caseItem.status === 'closed'
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {caseItem.status || 'Active'}
+                              </span>
+                              {caseItem.createdAt && (
+                                <span>Created: {new Date(caseItem.createdAt).toLocaleDateString()}</span>
+                              )}
+                              {caseItem.documents && (
+                                <span>📄 {caseItem.documents.length} doc{caseItem.documents.length !== 1 ? 's' : ''}</span>
+                              )}
+                            </div>
+                          </div>
+                          <Link
+                            to={`/case/${caseItem.id}`}
+                            className="btn btn-primary btn-sm ml-4"
+                          >
+                            View Case
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">No cases linked to this client yet.</p>
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-3">📁</div>
+                  <p>No cases linked to this client yet.</p>
+                  <Link to="/cases" className="btn btn-primary mt-4">
+                    Create New Case
+                  </Link>
+                </div>
               )}
             </div>
           )}
@@ -878,10 +985,95 @@ const ClientProfile = () => {
           {activeTab === 'billing' && (
             <div>
               <h2 className="text-xl font-semibold mb-4">Billing & Payments</h2>
-              <div className="text-center py-8 text-gray-500">
-                <p>Billing functionality coming soon...</p>
-                <p className="text-sm mt-2">This will include invoices, payments, and financial history.</p>
-              </div>
+              
+              {(client.payments || []).length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-3">💰</div>
+                  <p>No payments yet</p>
+                  <p className="text-sm mt-2">Payments made by this client will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Payment Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="card bg-green-50 border-green-200">
+                      <div className="p-4">
+                        <p className="text-sm text-green-700 font-medium">Total Paid</p>
+                        <p className="text-2xl font-bold text-green-900">
+                          ${((client.payments || [])
+                            .filter(p => p.status === 'paid' || p.status === 'complete')
+                            .reduce((sum, p) => sum + (p.amount || 0), 0) / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="card bg-blue-50 border-blue-200">
+                      <div className="p-4">
+                        <p className="text-sm text-blue-700 font-medium">Total Payments</p>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {(client.payments || []).length}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="card bg-purple-50 border-purple-200">
+                      <div className="p-4">
+                        <p className="text-sm text-purple-700 font-medium">Last Payment</p>
+                        <p className="text-lg font-bold text-purple-900">
+                          {(client.payments || []).length > 0 
+                            ? new Date(Math.max(...(client.payments || []).map(p => new Date(p.paidAt || p.createdAt)))).toLocaleDateString()
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment History */}
+                  <h3 className="text-lg font-semibold mb-3">Payment History</h3>
+                  <div className="space-y-3">
+                    {(client.payments || [])
+                      .sort((a, b) => new Date(b.paidAt || b.createdAt) - new Date(a.paidAt || a.createdAt))
+                      .map((payment, index) => (
+                        <div key={payment.id || index} className="card hover:shadow-md transition-shadow">
+                          <div className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    payment.status === 'paid' || payment.status === 'complete' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : payment.status === 'pending' 
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {payment.status || 'N/A'}
+                                  </span>
+                                  <span className="text-sm text-gray-600 font-medium">
+                                    {payment.paymentType || 'Payment'}
+                                  </span>
+                                </div>
+                                <p className="text-2xl font-bold text-gray-900 mb-1">
+                                  ${((payment.amount || 0) / 100).toFixed(2)}
+                                </p>
+                                {payment.caseId && (
+                                  <p className="text-sm text-gray-600 mb-1">
+                                    Case: {payment.caseTitle || payment.caseId}
+                                  </p>
+                                )}
+                                <p className="text-sm text-gray-500">
+                                  Paid on {new Date(payment.paidAt || payment.createdAt).toLocaleDateString()} at {new Date(payment.paidAt || payment.createdAt).toLocaleTimeString()}
+                                </p>
+                                {payment.sessionId && (
+                                  <p className="text-xs text-gray-400 mt-1 font-mono">
+                                    Session: {payment.sessionId.substring(0, 20)}...
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

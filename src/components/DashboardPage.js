@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 const fetchCases = async () => {
   try {
-    const response = await fetch(`${API_BASE}/cases`, {
+    const response = await fetch(`${API_BASE}/auth/cases`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
@@ -28,7 +28,7 @@ const fetchCases = async () => {
 
 const fetchClients = async () => {
   try {
-    const response = await fetch(`${API_BASE}/clients`, {
+    const response = await fetch(`${API_BASE}/auth/clients`, {
       headers: {
         'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
       }
@@ -65,23 +65,89 @@ const DashboardPage = () => {
   const completedCases = cases.filter(c => c.status === 'completed' || c.status === 'closed').length;
   const totalClients = clients.length;
 
-  // Recent cases (last 5)
-  const recentCases = cases.slice(0, 5);
+  // Recent cases (last 5, sorted by most recently updated)
+  const recentCases = [...cases]
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    .slice(0, 5);
 
-  // Mock recent activity (in a real app, this would come from an API)
-  const recentActivity = [
-    { id: 1, type: 'document_upload', message: 'New document uploaded to Case #123', time: '2 hours ago' },
-    { id: 2, type: 'case_update', message: 'Case status updated to "In Review"', time: '4 hours ago' },
-    { id: 3, type: 'review_complete', message: 'Document review completed for Contract ABC', time: '1 day ago' },
-    { id: 4, type: 'client_added', message: 'New client "John Smith" added', time: '2 days ago' },
-    { id: 5, type: 'case_created', message: 'New case "Estate Planning" created', time: '3 days ago' },
+  // Generate recent activity from real case data
+  const recentActivity = [];
+  
+  // Add recent case updates
+  cases.forEach(c => {
+    if (c.updatedAt && c.updatedAt !== c.createdAt) {
+      const timeDiff = Date.now() - new Date(c.updatedAt).getTime();
+      const daysAgo = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+      const timeStr = daysAgo > 0 ? `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago` : `${hoursAgo} hour${hoursAgo > 1 ? 's' : ''} ago`;
+      
+      recentActivity.push({
+        id: `case-update-${c.id}`,
+        type: 'case_update',
+        message: `Case "${c.title}" was updated`,
+        time: timeStr,
+        timestamp: new Date(c.updatedAt).getTime()
+      });
+    }
+    
+    // Add document uploads
+    if (c.documents && c.documents.length > 0) {
+      c.documents.forEach(doc => {
+        if (doc.uploadDate) {
+          const timeDiff = Date.now() - new Date(doc.uploadDate).getTime();
+          const daysAgo = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+          const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+          const timeStr = daysAgo > 0 ? `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago` : `${hoursAgo} hour${hoursAgo > 1 ? 's' : ''} ago`;
+          
+          recentActivity.push({
+            id: `doc-upload-${doc.id}`,
+            type: 'document_upload',
+            message: `Document "${doc.name}" uploaded to "${c.title}"`,
+            time: timeStr,
+            timestamp: new Date(doc.uploadDate).getTime()
+          });
+        }
+      });
+    }
+  });
+  
+  // Sort by timestamp and take the 5 most recent
+  const sortedActivity = recentActivity
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5);
+  
+  // If no recent activity, show a placeholder
+  const finalActivity = sortedActivity.length > 0 ? sortedActivity : [
+    { id: 'no-activity', type: 'info', message: 'No recent activity', time: 'N/A' }
   ];
 
-  // Mock upcoming deadlines
-  const upcomingDeadlines = [
-    { id: 1, title: 'Contract Review Deadline', case: 'Case #123', dueDate: '2025-10-10', priority: 'high' },
-    { id: 2, title: 'Client Meeting', case: 'Estate Planning', dueDate: '2025-10-15', priority: 'medium' },
-    { id: 3, title: 'Document Filing', case: 'Case #456', dueDate: '2025-10-20', priority: 'low' },
+  // Generate upcoming deadlines from real case data
+  const upcomingDeadlines = [];
+  const now = new Date();
+  
+  cases.forEach(c => {
+    // Check if case has a due date or deadline
+    if (c.dueDate) {
+      const dueDate = new Date(c.dueDate);
+      const daysUntil = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntil >= 0 && daysUntil <= 30) { // Only show deadlines within 30 days
+        upcomingDeadlines.push({
+          id: `deadline-${c.id}`,
+          title: `Case: ${c.title}`,
+          case: c.title,
+          dueDate: c.dueDate,
+          priority: daysUntil <= 3 ? 'high' : daysUntil <= 7 ? 'medium' : 'low'
+        });
+      }
+    }
+  });
+  
+  // Sort by due date
+  const sortedDeadlines = upcomingDeadlines.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
+  
+  const finalDeadlines = sortedDeadlines.length > 0 ? sortedDeadlines : [
+    { id: 'no-deadlines', title: 'No upcoming deadlines', case: 'N/A', dueDate: '', priority: 'low' }
   ];
 
   const StatCard = ({ title, value, icon, color = 'blue' }) => (
@@ -199,11 +265,11 @@ const DashboardPage = () => {
                     <h3 className="card-title">Upcoming Deadlines</h3>
                   </div>
                   <div className="card-body p-6">
-                    {upcomingDeadlines.length === 0 ? (
+                    {finalDeadlines.length === 0 || finalDeadlines[0].id === 'no-deadlines' ? (
                       <p className="text-gray-500 text-sm">No upcoming deadlines</p>
                     ) : (
                       <div className="space-y-4">
-                        {upcomingDeadlines.map(deadline => (
+                        {finalDeadlines.map(deadline => (
                           <div key={deadline.id} className="flex items-start space-x-3">
                             <div className={`w-3 h-3 rounded-full mt-1 ${
                               deadline.priority === 'high' ? 'bg-red-500' :
@@ -212,7 +278,7 @@ const DashboardPage = () => {
                             <div className="flex-1">
                               <h4 className="text-sm font-medium text-gray-900">{deadline.title}</h4>
                               <p className="text-xs text-gray-600">{deadline.case}</p>
-                              <p className="text-xs text-gray-500">Due: {new Date(deadline.dueDate).toLocaleDateString()}</p>
+                              {deadline.dueDate && <p className="text-xs text-gray-500">Due: {new Date(deadline.dueDate).toLocaleDateString()}</p>}
                             </div>
                           </div>
                         ))}
@@ -290,7 +356,7 @@ const DashboardPage = () => {
                   </div>
                   <div className="card-body">
                     <div className="space-y-4">
-                      {recentActivity.map((activity) => (
+                      {finalActivity.map((activity) => (
                         <div key={activity.id} className="flex items-start space-x-3">
                           <div className="text-lg">
                             {activity.type === 'document_upload' && '📄'}
@@ -298,6 +364,7 @@ const DashboardPage = () => {
                             {activity.type === 'review_complete' && '✅'}
                             {activity.type === 'client_added' && '👤'}
                             {activity.type === 'case_created' && '📋'}
+                            {activity.type === 'info' && 'ℹ️'}
                           </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-900">{activity.message}</p>

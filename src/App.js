@@ -13,6 +13,7 @@ import DashboardPage from './components/DashboardPage';
 import ClientsPage from './components/ClientsPage';
 import ClientProfile from './components/ClientProfile';
 import BillingPage from './components/BillingPage';
+import BillingSuccess from './components/BillingSuccess';
 import SettingsPage from './components/SettingsPage';
 import LegalResearchPage from './components/LegalResearchPage';
 import CaseLawDetailPage from './components/CaseLawDetailPage';
@@ -110,6 +111,12 @@ function AppContent() {
           <Route path="/billing" element={
             <ProtectedRoute>
               <BillingPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/billing/success" element={
+            <ProtectedRoute>
+              <BillingSuccess />
             </ProtectedRoute>
           } />
 

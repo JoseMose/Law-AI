@@ -4,7 +4,7 @@ import PDFUpload from '../PDFUpload';
 import ReviewPane from './ReviewPane';
 import CalendarSidebar from './CalendarSidebar';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 // Helper to check for authentication errors and redirect if necessary
 function handleAuthError(response, errorData) {
@@ -139,6 +139,7 @@ export default function CaseView() {
   const [previewingVersion, setPreviewingVersion] = useState(null); // Track which version we're previewing
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [completedIssues, setCompletedIssues] = useState(new Set()); // Track manually completed issues
+  const [appliedFixes, setAppliedFixes] = useState(new Map()); // Track applied fixes for revert functionality
 
   // Ref for editable div
   const editableDivRef = useRef(null);
@@ -258,7 +259,7 @@ export default function CaseView() {
     try {
       setClientsLoading(true);
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE}/clients`, {
+      const response = await fetch(`${API_BASE}/auth/clients`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -452,8 +453,9 @@ export default function CaseView() {
       }
 
       // Check if file is a PDF before attempting preview
-      if (!doc.filename.toLowerCase().endsWith('.pdf')) {
-        alert(`Cannot preview ${doc.filename}. Only PDF files can be previewed. Please download the file to view it.`);
+      const fileName = doc.filename || doc.name || 'file';
+      if (!fileName.toLowerCase().endsWith('.pdf')) {
+        alert(`Cannot preview ${fileName}. Only PDF files can be previewed. Please download the file to view it.`);
         return;
       }
 
@@ -643,23 +645,48 @@ export default function CaseView() {
   // Apply a suggested fix to the editable content
   const applyFix = (issue) => {
     if (!issue.suggestedText || !issue.originalText) {
-      alert('No suggested text available for this issue');
-      return;
+      return; // Silently skip if no suggested text
     }
 
     const updatedContent = editableContent.replace(issue.originalText, issue.suggestedText);
     setEditableContent(updatedContent);
     
-    // Remove this issue from the list since it's been fixed
-    if (reviewResults) {
-      const updatedIssues = reviewResults.issues.filter(i => i.id !== issue.id);
-      setReviewResults({
-        ...reviewResults,
-        issues: updatedIssues
+    // Track the applied fix for revert functionality
+    setAppliedFixes(prev => {
+      const newMap = new Map(prev);
+      newMap.set(issue.id, {
+        originalText: issue.originalText,
+        suggestedText: issue.suggestedText,
+        issue: issue
       });
-    }
+      return newMap;
+    });
     
-    alert('Fix applied successfully!');
+    // Mark issue as completed
+    setCompletedIssues(prev => new Set([...prev, issue.id]));
+  };
+
+  // Revert an applied fix
+  const revertFix = (issue) => {
+    const appliedFix = appliedFixes.get(issue.id);
+    if (!appliedFix) return;
+
+    const updatedContent = editableContent.replace(appliedFix.suggestedText, appliedFix.originalText);
+    setEditableContent(updatedContent);
+    
+    // Remove from applied fixes
+    setAppliedFixes(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(issue.id);
+      return newMap;
+    });
+    
+    // Remove from completed issues
+    setCompletedIssues(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(issue.id);
+      return newSet;
+    });
   };
 
   // Mark an issue as manually completed
@@ -807,6 +834,7 @@ export default function CaseView() {
             editableContent={editableContent}
             setEditableContent={setEditableContent}
             completedIssues={completedIssues}
+            appliedFixes={appliedFixes}
             selectedIssue={selectedIssue}
             saveStatus={saveStatus}
             setSaveStatus={setSaveStatus}
@@ -817,6 +845,7 @@ export default function CaseView() {
             getHighlightedHtml={getHighlightedHtml}
             handleSidebarIssueClick={handleSidebarIssueClick}
             applyFix={applyFix}
+            revertFix={revertFix}
             markIssueComplete={markIssueComplete}
             editableDivRef={editableDivRef}
             onClose={() => setShowReviewMode(false)}
@@ -1040,17 +1069,100 @@ export default function CaseView() {
                               View Details
                             </Link>
                             <button
-                              onClick={() => {
-                                // Remove case law reference
+                              onClick={async () => {
                                 if (window.confirm('Remove this case law reference from the case?')) {
-                                  // TODO: Implement remove functionality
-                                  alert('Remove functionality not yet implemented');
+                                  try {
+                                    const token = sessionStorage.getItem('accessToken');
+                                    const res = await fetch(`${API_BASE}/cases/${id}/case-law/${caseLaw.id}`, {
+                                      method: 'DELETE',
+                                      headers: {
+                                        'Authorization': `Bearer ${token}`
+                                      }
+                                    });
+
+                                    if (!res.ok) {
+                                      const errorData = await res.json().catch(() => ({}));
+                                      if (handleAuthError(res, errorData)) {
+                                        return;
+                                      }
+                                      throw new Error(errorData.error || 'Failed to remove case law reference');
+                                    }
+
+                                    const data = await res.json();
+                                    
+                                    // Update local state with the updated case
+                                    setCs(data.case);
+                                    alert('Case law reference removed successfully');
+                                  } catch (error) {
+                                    console.error('Error removing case law reference:', error);
+                                    alert('Failed to remove case law reference: ' + error.message);
+                                  }
                                 }
                               }}
                               className="btn btn-outline btn-sm text-red-600 hover:bg-red-50"
                             >
                               Remove
                             </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Payment History Section */}
+            <div className="mt-6">
+              <div className="card">
+                <div className="card-header">
+                  <div className="flex items-center justify-between">
+                    <h3 className="card-title flex items-center gap-2">💰 Payment History</h3>
+                    <span className="text-sm text-gray-500">
+                      {(cs.payments || []).length} payment{(cs.payments || []).length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="card-body">
+                  {(cs.payments || []).length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-state-icon">💰</div>
+                      <h3>No payments yet</h3>
+                      <p>Payments made for this case will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {(cs.payments || []).map((payment, index) => (
+                        <div key={payment.id || index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  payment.status === 'paid' || payment.status === 'complete' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : payment.status === 'pending' 
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {payment.status || 'N/A'}
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                  {payment.paymentType || 'Payment'}
+                                </span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">
+                                ${((payment.amount || 0) / 100).toFixed(2)}
+                              </p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Paid on {new Date(payment.paidAt || payment.createdAt).toLocaleDateString()} at {new Date(payment.paidAt || payment.createdAt).toLocaleTimeString()}
+                              </p>
+                              {payment.sessionId && (
+                                <p className="text-xs text-gray-400 mt-1 font-mono">
+                                  Session: {payment.sessionId.substring(0, 20)}...
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1110,7 +1222,7 @@ export default function CaseView() {
                         </option>
                         {clients.map(client => (
                           <option key={client.id} value={client.id}>
-                            {client.first_name} {client.last_name} {client.company_name ? `(${client.company_name})` : ''}
+                            {client.name} {client.company_name ? `(${client.company_name})` : ''}
                           </option>
                         ))}
                       </select>
@@ -1137,7 +1249,7 @@ export default function CaseView() {
                       return sc ? (
                         <div className="text-sm text-gray-700 space-y-2">
                           <div>
-                            <div><span className="font-medium">Name:</span> {sc.first_name} {sc.last_name}</div>
+                            <div><span className="font-medium">Name:</span> {sc.name}</div>
                             {sc.company_name && <div><span className="font-medium">Company:</span> {sc.company_name}</div>}
                             <div><span className="font-medium">Email:</span> {sc.email}</div>
                             {sc.phone && <div><span className="font-medium">Phone:</span> {sc.phone}</div>}

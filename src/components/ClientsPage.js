@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 const ClientsPage = () => {
   const navigate = useNavigate();
@@ -10,8 +10,7 @@ const ClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newClient, setNewClient] = useState({
-    first_name: '',
-    last_name: '',
+    name: '',
     email: '',
     phone: '',
     company_name: '',
@@ -56,7 +55,7 @@ const ClientsPage = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE}/clients`, {
+      const response = await fetch(`${API_BASE}/auth/clients`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -84,7 +83,7 @@ const ClientsPage = () => {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE}/clients`, {
+      const response = await fetch(`${API_BASE}/auth/clients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,8 +97,7 @@ const ClientsPage = () => {
         setClients([...clients, data.client]);
         setShowAddModal(false);
         setNewClient({
-          first_name: '',
-          last_name: '',
+          name: '',
           email: '',
           phone: '',
           company_name: '',
@@ -121,7 +119,7 @@ const ClientsPage = () => {
   };
 
   const filteredClients = clients.filter(client =>
-    client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (client.company_name && client.company_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -198,11 +196,11 @@ const ClientsPage = () => {
                       <div className="flex items-center gap-6">
                         <div className="avatar avatar-sm">
                           <span className="avatar-initials">
-                            {client.first_name[0]}{client.last_name[0]}
+                            {client.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium">{client.first_name} {client.last_name}</div>
+                          <div className="font-medium">{client.name}</div>
                           <div className="text-sm text-muted">Client ID: {client.id}</div>
                         </div>
                       </div>
@@ -250,24 +248,14 @@ const ClientsPage = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={handleAddClient} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="form-label">First Name *</label>
+                    <label className="form-label">Full Name *</label>
                     <input
                       type="text"
                       required
-                      value={newClient.first_name}
-                      onChange={(e) => setNewClient({...newClient, first_name: e.target.value})}
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label">Last Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newClient.last_name}
-                      onChange={(e) => setNewClient({...newClient, last_name: e.target.value})}
+                      value={newClient.name}
+                      onChange={(e) => setNewClient({...newClient, name: e.target.value})}
                       className="form-input"
                     />
                   </div>

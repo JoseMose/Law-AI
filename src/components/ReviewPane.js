@@ -8,6 +8,7 @@ export default function ReviewPane({
   editableContent,
   setEditableContent,
   completedIssues,
+  appliedFixes,
   selectedIssue,
   saveStatus,
   setSaveStatus,
@@ -18,6 +19,7 @@ export default function ReviewPane({
   getHighlightedHtml,
   handleSidebarIssueClick,
   applyFix,
+  revertFix,
   markIssueComplete,
   editableDivRef,
   onClose,
@@ -294,6 +296,29 @@ export default function ReviewPane({
                   </div>
                 )}
                 
+                {/* Show revert button if fix has been applied */}
+                {isCompleted && appliedFixes && appliedFixes.has(issue.id) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      revertFix && revertFix(issue);
+                    }}
+                    style={{
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    ↶ Revert Fix
+                  </button>
+                )}
+                
+                {/* Show apply button if fix available and not completed */}
                 {hasAutoFix && !isCompleted && (
                   <button
                     onClick={(e) => {
@@ -311,10 +336,11 @@ export default function ReviewPane({
                       width: '100%'
                     }}
                   >
-                    Apply Fix
+                    ✓ Apply Fix
                   </button>
                 )}
                 
+                {/* Show mark complete for manual fixes */}
                 {!hasAutoFix && !isCompleted && (
                   <button
                     onClick={(e) => {
@@ -332,7 +358,7 @@ export default function ReviewPane({
                       width: '100%'
                     }}
                   >
-                    ✓ Mark as Complete
+                    ✓ Mark Complete
                   </button>
                 )}
                 

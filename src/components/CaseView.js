@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PDFUpload from '../PDFUpload';
 
-const API_BASE = 'https://phd54f79fk.execute-api.us-east-1.amazonaws.com/dev';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://sb7snqtgc3.execute-api.us-east-1.amazonaws.com/dev';
 
 // Component for displaying a document with simplified actions
 const DocumentWithVersions = ({ document, onPreview, onShowVersions, onReview, onDelete, reviewing }) => {
