@@ -6,6 +6,38 @@ const { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, Dele
 // Initialize S3 client
 const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
 
+async function loadJsonFromS3(key, defaultValue) {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key
+    });
+    const response = await s3Client.send(command);
+    const payload = await response.Body.transformToString();
+    return JSON.parse(payload);
+  } catch (error) {
+    console.log(`No existing ${key} file or error loading:`, error.message);
+    return defaultValue;
+  }
+}
+
+async function saveJsonToS3(key, payload) {
+  try {
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      Body: JSON.stringify(payload, null, 2),
+      ContentType: 'application/json'
+    });
+    await s3Client.send(command);
+    console.log(`${key} saved to S3 successfully`);
+    return true;
+  } catch (error) {
+    console.error(`Error saving ${key} to S3:`, error);
+    return false;
+  }
+}
+
 // Update document review timestamp
 async function updateDocumentReviewTimestamp(caseId, documentKey) {
   try {
@@ -128,5 +160,13 @@ module.exports = {
   loadCasesFromS3,
   saveCasesToS3,
   loadClientsFromS3,
-  saveClientsToS3
+  saveClientsToS3,
+  loadJsonFromS3,
+  saveJsonToS3,
+  loadCRMContactsFromS3: () => loadJsonFromS3('crm/contacts.json', []),
+  saveCRMContactsToS3: (contacts) => saveJsonToS3('crm/contacts.json', contacts),
+  loadCRMOrganizationsFromS3: () => loadJsonFromS3('crm/organizations.json', []),
+  saveCRMOrganizationsToS3: (organizations) => saveJsonToS3('crm/organizations.json', organizations),
+  loadCRMInteractionsFromS3: () => loadJsonFromS3('crm/interactions.json', []),
+  saveCRMInteractionsToS3: (interactions) => saveJsonToS3('crm/interactions.json', interactions)
 };

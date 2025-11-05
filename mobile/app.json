@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Law AI Mobile",
+    "slug": "law-ai-mobile",
+    "platforms": ["ios","android"],
+    "version": "1.0.0",
+    "sdkVersion": "48.0.0",
+    "ios": {
+      "bundleIdentifier": "com.lawai.mobile",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "Law AI needs access to your calendar to add and manage case events.",
+        "NSRemindersUsageDescription": "Law AI may add reminders for important case events.",
+        "NSUserTrackingUsageDescription": "We use analytics to improve the app experience."
+      }
+    }
+    ,
+    "splash": {
+      "backgroundColor": "#0b67ff",
+      "resizeMode": "contain"
+    }
+  }
+}

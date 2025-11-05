@@ -17,6 +17,7 @@ import BillingSuccess from './components/BillingSuccess';
 import SettingsPage from './components/SettingsPage';
 import LegalResearchPage from './components/LegalResearchPage';
 import CaseLawDetailPage from './components/CaseLawDetailPage';
+import CRMPage from './components/CRMPage';
 import Navigation from './components/Navigation';
 import './styles/modern.css';
 import './styles/landing.css';
@@ -105,6 +106,12 @@ function AppContent() {
           <Route path="/clients/:id" element={
             <ProtectedRoute>
               <ClientProfile />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/crm" element={
+            <ProtectedRoute>
+              <CRMPage />
             </ProtectedRoute>
           } />
 

@@ -2,7 +2,20 @@ const { InvokeModelCommand, BedrockRuntimeClient } = require('@aws-sdk/client-be
 
 const bedrockClient = new BedrockRuntimeClient({ region: 'us-west-2' });
 
+// Simple in-memory cache to prevent duplicate API calls (resets on cold start)
+const analysisCache = new Map();
+const CACHE_TTL = 3600000; // 1 hour in milliseconds
+
 async function summarizeStatuteWithClaude(statuteData, userQuery = null) {
+  // Create cache key from statute data
+  const cacheKey = `${statuteData.title_number}-${statuteData.chapter_number}-${statuteData.section_number}-${userQuery || 'default'}`;
+  
+  // Check cache first
+  const cached = analysisCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('Returning cached analysis for:', cacheKey);
+    return cached.data;
+  }
   const contextPrompt = userQuery ?
     `User Query: "${userQuery}"\n\nStatute to analyze:` :
     `Please analyze this Georgia statute:`;
@@ -29,12 +42,12 @@ Focus on practical implications for lawyers and their clients. Be precise and le
 
   try {
     const command = new InvokeModelCommand({
-      modelId: 'anthropic.claude-opus-4-1-20250805-v1:0',
+      modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0', // Changed from Opus 4.1 (5x cheaper!)
       contentType: 'application/json',
       accept: 'application/json',
       body: JSON.stringify({
         anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 4000,
+        max_tokens: 2000, // Reduced from 4000 to cut costs in half
         messages: [
           {
             role: 'user',

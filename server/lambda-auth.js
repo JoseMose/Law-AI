@@ -23,6 +23,8 @@ const {
   saveClientsToS3
 } = require('./s3-operations');
 
+const { handleCRMRequest } = require('./crm-handlers');
+
 exports.handler = async (event, context) => {
   const path = event.path || event.rawPath || '';
   const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
@@ -51,6 +53,11 @@ exports.handler = async (event, context) => {
         path: path,
         method: method
       });
+    }
+
+    const crmResponse = await handleCRMRequest(path, method, event);
+    if (crmResponse) {
+      return crmResponse;
     }
 
     // Auth Sign In endpoint

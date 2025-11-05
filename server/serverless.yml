@@ -1,6 +1,6 @@
 service: lawai-backend-2025
 
-frameworkVersion: '^4.0.0'
+frameworkVersion: '^3.0.0'
 
 provider:
   name: aws
@@ -83,15 +83,19 @@ layers:
     description: AWS SDK dependencies for Lambda
     compatibleRuntimes:
       - nodejs20.x
+    package:
+      patterns:
+        - 'nodejs/**'
 
 package:
-  exclude:
-    - '**'
-  include:
-    - lambda-auth.js
-    - auth-handlers.js
-    - s3-operations.js
-    - helpers.js
-    - aws-clients.js
+  patterns:
+    - 'lambda-auth.js'
+    - 'auth-handlers.js'
+    - 's3-operations.js'
+    - 'helpers.js'
+    - 'aws-clients.js'
+    - 'crm-handlers.js'
+    - '!node_modules/**'
+    - '!lambda-layer/**'
   excludeDevDependencies: true
   individually: false

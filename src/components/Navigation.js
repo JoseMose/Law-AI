@@ -35,6 +35,9 @@ const Navigation = ({ user, onSignOut }) => {
             <Link to="/clients" className={`navbar-link ${isActive('/clients') ? 'active' : ''}`} title="Client directory + history">Clients</Link>
           </li>
           <li>
+            <Link to="/crm" className={`navbar-link ${isActive('/crm') ? 'active' : ''}`} title="Pipeline, organizations, and relationship tracking">CRM</Link>
+          </li>
+          <li>
             <Link to="/legal-research" className={`navbar-link ${isActive('/legal-research') ? 'active' : ''}`} title="AI-powered legal research and analysis">Legal Research</Link>
           </li>
           <li>

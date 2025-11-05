@@ -70,6 +70,49 @@ const DashboardPage = () => {
     .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
     .slice(0, 5);
 
+  const statusCounts = cases.reduce((acc, c) => {
+    const key = (c.status || 'active').toString().toLowerCase().replace(/\s+/g, '_');
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const statusLabels = {
+    active: 'Active',
+    open: 'Open',
+    pending: 'Pending',
+    completed: 'Completed',
+    closed: 'Closed',
+    on_hold: 'On Hold',
+    intake: 'Intake',
+    draft: 'Draft'
+  };
+
+  const statusColors = {
+    active: 'bg-blue-500',
+    open: 'bg-sky-500',
+    pending: 'bg-amber-500',
+    completed: 'bg-emerald-500',
+    closed: 'bg-gray-500',
+    on_hold: 'bg-purple-500',
+    intake: 'bg-cyan-500',
+    draft: 'bg-indigo-500'
+  };
+
+  const pipelineData = Object.entries(statusCounts)
+    .map(([key, count]) => ({
+      key,
+      count,
+      label: statusLabels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase()),
+      color: statusColors[key] || 'bg-slate-400'
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const maxPipelineCount = pipelineData.length > 0 ? Math.max(...pipelineData.map(item => item.count)) : 1;
+
+  const recentClients = [...clients]
+    .sort((a, b) => new Date(b.createdAt || b.created_at || b.created || 0) - new Date(a.createdAt || a.created_at || a.created || 0))
+    .slice(0, 5);
+
   // Generate recent activity from real case data
   const recentActivity = [];
   
@@ -146,9 +189,7 @@ const DashboardPage = () => {
   // Sort by due date
   const sortedDeadlines = upcomingDeadlines.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
   
-  const finalDeadlines = sortedDeadlines.length > 0 ? sortedDeadlines : [
-    { id: 'no-deadlines', title: 'No upcoming deadlines', case: 'N/A', dueDate: '', priority: 'low' }
-  ];
+  const finalDeadlines = sortedDeadlines;
 
   const StatCard = ({ title, value, icon, color = 'blue' }) => (
     <div className="card">
@@ -160,16 +201,6 @@ const DashboardPage = () => {
             <div className="text-sm text-gray-600">{title}</div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-
-  const QuickActionCard = ({ title, description, icon, onClick, color = 'blue' }) => (
-    <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
-      <div className="card-body p-6 text-center">
-        <div className={`text-4xl mb-3 text-${color}-500`}>{icon}</div>
-        <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600">{description}</p>
       </div>
     </div>
   );
@@ -219,53 +250,43 @@ const DashboardPage = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Quick Actions */}
-              <div className="lg:col-span-1">
+              {/* Insights column */}
+              <div className="lg:col-span-1 space-y-6">
                 <div className="card">
                   <div className="card-header">
-                    <h3 className="card-title">Quick Actions</h3>
+                    <h3 className="card-title">Case Pipeline</h3>
                   </div>
                   <div className="card-body p-6">
-                    <div className="space-y-4">
-                      <QuickActionCard
-                        title="New Case"
-                        description="Create a new case file"
-                        icon="➕"
-                        onClick={() => navigate('/cases/new')}
-                        color="blue"
-                      />
-                      <QuickActionCard
-                        title="Upload Document"
-                        description="Add documents to existing cases"
-                        icon="📤"
-                        onClick={() => navigate('/upload')}
-                        color="green"
-                      />
-                      <QuickActionCard
-                        title="Add Client"
-                        description="Register a new client"
-                        icon="👤"
-                        onClick={() => navigate('/clients/new')}
-                        color="purple"
-                      />
-                      <QuickActionCard
-                        title="View All Cases"
-                        description="Browse all case files"
-                        icon="📂"
-                        onClick={() => navigate('/cases')}
-                        color="gray"
-                      />
-                    </div>
+                    {pipelineData.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No cases yet. Create your first case to populate the pipeline.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {pipelineData.map((stage) => {
+                          const percentage = Math.round((stage.count / maxPipelineCount) * 100);
+                          const width = Math.max(12, percentage);
+                          return (
+                            <div key={stage.key}>
+                              <div className="flex items-center justify-between text-sm font-medium text-gray-700">
+                                <span>{stage.label}</span>
+                                <span>{stage.count}</span>
+                              </div>
+                              <div className="w-full h-2 bg-gray-200 rounded-full mt-2">
+                                <div className={`h-2 rounded-full ${stage.color}`} style={{ width: `${width}%` }}></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Upcoming Deadlines */}
-                <div className="card mt-6">
+                <div className="card">
                   <div className="card-header">
                     <h3 className="card-title">Upcoming Deadlines</h3>
                   </div>
                   <div className="card-body p-6">
-                    {finalDeadlines.length === 0 || finalDeadlines[0].id === 'no-deadlines' ? (
+                    {finalDeadlines.length === 0 ? (
                       <p className="text-gray-500 text-sm">No upcoming deadlines</p>
                     ) : (
                       <div className="space-y-4">
@@ -282,6 +303,58 @@ const DashboardPage = () => {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <div className="flex items-center justify-between">
+                      <h3 className="card-title">Recently Added Clients</h3>
+                      {recentClients.length > 0 && (
+                        <button
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => navigate('/clients')}
+                        >
+                          View all
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="card-body p-6">
+                    {recentClients.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No clients added yet.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {recentClients.map((client, idx) => {
+                          const clientId = client.id || client.clientId;
+                          const name = client.name
+                            || [client.firstName, client.lastName].filter(Boolean).join(' ')
+                            || 'Unnamed client';
+                          const joinedDate = client.createdAt || client.created_at || client.created || client.addedAt;
+                          return (
+                            <div key={clientId || client.email || idx} className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{name}</p>
+                                {client.company || client.phone ? (
+                                  <p className="text-xs text-gray-500">{client.company || client.phone}</p>
+                                ) : null}
+                                {joinedDate ? (
+                                  <p className="text-xs text-gray-400">Joined {new Date(joinedDate).toLocaleDateString()}</p>
+                                ) : null}
+                              </div>
+                              {clientId ? (
+                                <button
+                                  className="btn btn-secondary btn-xs"
+                                  onClick={() => navigate(`/clients/${clientId}`)}
+                                >
+                                  Open
+                                </button>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

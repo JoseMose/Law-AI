@@ -1,4 +1,4 @@
-import React from 'react';
+2import React from 'react';
 import { ServerStatus } from './ServerStatus';
 
 export const DemoMode = () => {
